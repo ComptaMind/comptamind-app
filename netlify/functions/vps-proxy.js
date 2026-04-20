@@ -2,6 +2,9 @@
  * vps-proxy.js — Proxy HTTPS → VPS HTTP
  * Permet au frontend HTTPS d'appeler le VPS HTTP sans erreur mixed-content.
  * Usage : POST /.netlify/functions/vps-proxy?endpoint=/run
+ *
+ * CORRECTIF 2026-04-20 : /run redirigé vers /run-async (réponse immédiate)
+ * pour éviter le timeout Netlify (30s) sur les tâches longues (~260s).
  */
 
 const VPS_URL = process.env.VPS_BASE_URL || "http://204.168.212.22:8080";
@@ -19,7 +22,12 @@ exports.handler = async (event) => {
     return { statusCode: 204, headers: CORS, body: "" };
   }
 
-  const endpoint = event.queryStringParameters?.endpoint || "/health";
+  const rawEndpoint = event.queryStringParameters?.endpoint || "/health";
+
+  // /run → /run-async : le VPS répond immédiatement (202) et traite en arrière-plan.
+  // Évite le timeout Netlify sur les tâches longues (saisie, révision, etc.)
+  const endpoint = rawEndpoint === "/run" ? "/run-async" : rawEndpoint;
+
   const isPost = event.httpMethod === "POST";
 
   const reqHeaders = { "Content-Type": "application/json" };
@@ -30,7 +38,7 @@ exports.handler = async (event) => {
     const fetchOptions = {
       method: isPost ? "POST" : "GET",
       headers: reqHeaders,
-      signal: AbortSignal.timeout(30000), // 30s max
+      signal: AbortSignal.timeout(10000), // 10s max (réponse immédiate attendue)
     };
     if (isPost && event.body) fetchOptions.body = event.body;
 
