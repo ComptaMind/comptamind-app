@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Shield, ChevronDown, ChevronRight, Info, RotateCcw, User } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { useAppStore } from '../store/useAppStore'
+import { useAirtableClients } from '../hooks/useAirtableClients'
 
 const actionDefinitions = [
   {
@@ -245,7 +246,8 @@ function ActionRow({ actionKey, definition, permission, onChangeGlobal, clientOv
 }
 
 export default function AutorisationsPage() {
-  const { permissions, clientPermissions, setPermission, setClientPermission, clients } = useAppStore()
+  const { permissions, clientPermissions, setPermission, setClientPermission } = useAppStore()
+  const { clients } = useAirtableClients()
 
   const counts = Object.values(permissions).reduce((acc, v) => {
     acc[v] = (acc[v] || 0) + 1

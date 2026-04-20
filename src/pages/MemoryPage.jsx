@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Brain, Plus, Trash2, Edit, Search, Filter } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { useAppStore } from '../store/useAppStore'
+import { useAirtableClients } from '../hooks/useAirtableClients'
 
 const catConfig = {
   note: { label: 'Note', emoji: '📝', color: 'bg-blue-50 border-blue-100', badge: 'bg-blue-100 text-blue-700' },
@@ -15,7 +16,8 @@ export default function MemoryPage() {
   const [search, setSearch] = useState('')
   const [newMem, setNewMem] = useState({ titre: '', contenu: '', categorie: 'note' })
 
-  const { clients, memories, addMemory, deleteMemory } = useAppStore()
+  const { memories, addMemory, deleteMemory } = useAppStore()
+  const { clients } = useAirtableClients()
 
   const contextMemories = memories[selectedClient] || []
   const filtered = contextMemories.filter(m =>

@@ -6,6 +6,7 @@ import {
 import Header from '../components/layout/Header'
 import { useAppStore } from '../store/useAppStore'
 import { useNavigate } from 'react-router-dom'
+import { useAirtableClients } from '../hooks/useAirtableClients'
 
 const triggerLabels = {
   monthly: 'Mensuel',
@@ -176,7 +177,7 @@ function TaskCard({ task, onToggle, onDelete }) {
 
 function AddTaskModal({ onClose, onSave }) {
   const [form, setForm] = useState({ label: '', action: 'saisie_mensuelle', trigger: 'monthly', triggerDay: 10, clientIds: 'all' })
-  const { clients } = useAppStore()
+  const { clients } = useAirtableClients()
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
