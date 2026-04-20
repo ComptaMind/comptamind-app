@@ -7,7 +7,6 @@ import Header from '../components/layout/Header'
 import { listRecords } from '../lib/airtable'
 import { runTask as callVPS, runDebug } from '../lib/api'
 import { TBL_CLIENTS, FLD_CLIENT_NAME, TACHES } from '../lib/airtable-schema'
-import { taskSteps } from '../data/mockData'
 
 // ─── Mapping tâche locale → enum VPS ─────────────────────────────────────────
 
@@ -93,12 +92,14 @@ function TaskProgress({ task, onComplete }) {
   const [completedSteps, setCompletedSteps] = useState([])
   const [currentStep, setCurrentStep] = useState(0)
 
-  // Choisir les étapes en fonction de la tâche
-  const stepsKey = task.tache === 'saisie' ? 'saisie'
-    : task.tache === 'revision' || task.tache === 'rev_fourn' || task.tache === 'rev_client' ? 'revision'
-    : task.tache === 'relances' ? 'relances'
-    : 'revision'
-  const steps = taskSteps[stepsKey] || taskSteps.revision
+  // Étapes simples et précises selon la tâche
+  const label = TASK_LABELS[task.tache] || task.tache
+  const detail = task.fournisseur ? `${label} — ${task.fournisseur}` : label
+  const steps = [
+    { id: 1, label: 'Connexion à Pennylane', duration: 1200 },
+    { id: 2, label: `${detail} en cours...`, duration: 3000 },
+    { id: 3, label: 'Génération du rapport', duration: 800 },
+  ]
 
   useEffect(() => {
     let delay = 500
