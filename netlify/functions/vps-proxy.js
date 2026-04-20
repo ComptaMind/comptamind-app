@@ -4,7 +4,7 @@
  * Usage : POST /.netlify/functions/vps-proxy?endpoint=/run
  */
 
-const VPS_URL = "http://204.168.212.22:8080";
+const VPS_URL = process.env.VPS_BASE_URL || "http://204.168.212.22:8080";
 
 exports.handler = async (event) => {
   const CORS = {
