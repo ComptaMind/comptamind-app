@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { listRecords } from '../lib/airtable'
 import { TBL_CLIENTS, FLD_CLIENT_NAME } from '../lib/airtable-schema'
 
-// ID à exclure de l'interface
-const EXCLUDED_IDS = new Set(['recl8Gk8Ea7mwItQ4'])
+// IDs à exclure de toute l'interface
+export const EXCLUDED_CLIENT_IDS = new Set([
+  'recl8Gk8Ea7mwItQ4',
+  'rec581fLc6Yhvowyz',
+])
 
 /**
  * Charge les vrais clients depuis Airtable.
@@ -16,7 +19,7 @@ export function useAirtableClients() {
 
   useEffect(() => {
     listRecords(TBL_CLIENTS)
-      .then(all => setRecords(all.filter(r => !EXCLUDED_IDS.has(r.id))))
+      .then(all => setRecords(all.filter(r => !EXCLUDED_CLIENT_IDS.has(r.id))))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])

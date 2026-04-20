@@ -6,6 +6,7 @@ import {
 import Header from '../components/layout/Header'
 import { listRecords, getRecord } from '../lib/airtable'
 import { runTask as callVPS } from '../lib/api'
+import { EXCLUDED_CLIENT_IDS } from '../hooks/useAirtableClients'
 import {
   TBL_CLIENTS, TBL_QUEUE,
   FLD_CLIENT_NAME, FLD_TASK_STATUS, FLD_TASK_LOGS
@@ -291,7 +292,7 @@ export default function ComptaMindPage() {
 
   useEffect(() => {
     listRecords(TBL_CLIENTS)
-      .then(setAirtableClients)
+      .then(all => setAirtableClients(all.filter(r => !EXCLUDED_CLIENT_IDS.has(r.id))))
       .catch(() => {})
       .finally(() => setLoadingClients(false))
   }, [])

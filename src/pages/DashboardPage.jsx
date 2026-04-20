@@ -10,6 +10,7 @@ import {
   TBL_CLIENTS, TBL_QUEUE, TBL_ALERTES,
   FLD_CLIENT_NAME, FLD_CLIENT_STATUS, FLD_CLIENT_PROFIL, FLD_CLIENT_LAST_ACTION
 } from '../lib/airtable-schema'
+import { EXCLUDED_CLIENT_IDS } from '../hooks/useAirtableClients'
 
 const cabinetName = import.meta.env.VITE_CABINET_NAME || 'votre cabinet'
 
@@ -109,7 +110,7 @@ export default function DashboardPage() {
       listRecords(TBL_QUEUE).catch(() => []),
       listRecords(TBL_ALERTES).catch(() => []),
     ]).then(([c, q, a]) => {
-      setClients(c)
+      setClients(c.filter(r => !EXCLUDED_CLIENT_IDS.has(r.id)))
       setQueue(q.slice(0, 5))
       setAlertes(a)
     }).finally(() => setLoading(false))

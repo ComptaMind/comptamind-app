@@ -4,6 +4,7 @@ import Header from '../components/layout/Header'
 import { listRecords } from '../lib/airtable'
 import { runTask, runDebug } from '../lib/api'
 import { TBL_CLIENTS, FLD_CLIENT_NAME, FLD_CLIENT_STATUS, FLD_CLIENT_SIREN, FLD_CLIENT_PROFIL, TACHES } from '../lib/airtable-schema'
+import { EXCLUDED_CLIENT_IDS } from '../hooks/useAirtableClients'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -321,7 +322,7 @@ export default function ClientsPage() {
     async function load() {
       try {
         const records = await listRecords(TBL_CLIENTS)
-        setClients(records)
+        setClients(records.filter(r => !EXCLUDED_CLIENT_IDS.has(r.id)))
       } catch (e) {
         setError(e.message)
       } finally {
@@ -438,7 +439,7 @@ export default function ClientsPage() {
           onCreated={() => {
             setShowNewDossier(false)
             setLoading(true)
-            listRecords(TBL_CLIENTS).then(setClients).finally(() => setLoading(false))
+            listRecords(TBL_CLIENTS).then(r => setClients(r.filter(x => !EXCLUDED_CLIENT_IDS.has(x.id)))).finally(() => setLoading(false))
           }}
         />
       )}
