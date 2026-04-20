@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "comptamind",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/Users/annecarlakamgang/comptamind/start-dev.sh"],
+      "port": 5173
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"$HOME/.nvm/versions/node/v20.20.1/bin:$PATH\")",
+      "Bash(npm install:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Read(//usr/local/bin/**)",
+      "Bash(mkdir -p /Users/annecarlakamgang/.local/bin)",
+      "Bash(ln -sf /Users/annecarlakamgang/.nvm/versions/node/v20.20.1/bin/node /Users/annecarlakamgang/.local/bin/node)",
+      "Bash(ln -sf /Users/annecarlakamgang/.nvm/versions/node/v20.20.1/bin/npm /Users/annecarlakamgang/.local/bin/npm)",
+      "Bash(pkill -f \"vite\")",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__read_page",
+      "mcp__Claude_in_Chrome__computer",
+      "mcp__Claude_in_Chrome__form_input",
+      "Bash(npm run:*)",
+      "Bash(find /Users/annecarlakamgang -type f -iname *package*)"
+    ]
+  }
+}
