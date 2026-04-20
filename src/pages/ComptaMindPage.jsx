@@ -1,67 +1,73 @@
 import { useState, useRef, useEffect } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
-  Send, Bot, User, ChevronDown, Zap, CheckCircle,
-  AlertTriangle, Clock, FileText, Brain, Sparkles,
-  Play, X, ChevronRight, Download
+  Send, Bot, User, ChevronDown,
+  CheckCircle, FileText, AlertTriangle, ExternalLink
 } from 'lucide-react'
 import Header from '../components/layout/Header'
-import { useAppStore } from '../store/useAppStore'
+import { listRecords } from '../lib/airtable'
+import { runTask as callVPS, runDebug } from '../lib/api'
+import { TBL_CLIENTS, FLD_CLIENT_NAME, TACHES } from '../lib/airtable-schema'
 import { taskSteps } from '../data/mockData'
 
+// ─── Mapping tâche locale → enum VPS ─────────────────────────────────────────
+
+const TACHE_MAP = {
+  saisie:       'saisie_factures',
+  revision:     'revision_balance',
+  rev_fourn:    'revision_fournisseur',
+  rev_client:   'revision_client',
+  rapport:      'rapport',
+  rapprochement:'rapprochement_bancaire',
+  relances:     'relance_clients',
+}
+
+const TASK_LABELS = {
+  saisie:       'Saisie des factures',
+  revision:     'Révision par la balance',
+  rev_fourn:    'Révision fournisseur',
+  rev_client:   'Révision client',
+  rapport:      'Rapport',
+  rapprochement:'Rapprochement bancaire',
+  relances:     'Relances clients',
+}
+
 const quickActions = [
-  { id: 'saisie', label: 'Saisie mensuelle', icon: '📝', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100', taskType: 'saisie' },
-  { id: 'revision', label: 'Révision balance', icon: '🔍', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100', taskType: 'revision' },
-  { id: 'cloture', label: 'Clôture', icon: '✅', color: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100', taskType: 'cloture' },
-  { id: 'relances', label: 'Relances clients', icon: '📬', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100', taskType: 'relances' },
+  { id: 'saisie',    label: 'Saisie',          icon: '📝', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
+  { id: 'revision',  label: 'Révision balance', icon: '🔍', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+  { id: 'rapport',   label: 'Rapport',          icon: '📊', color: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' },
+  { id: 'relances',  label: 'Relances',         icon: '📬', color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100' },
 ]
 
-const taskResultTemplates = {
-  saisie: (clientNom) => ({
-    titre: `✅ Saisie terminée — ${clientNom}`,
-    stats: [
-      { label: 'Écritures saisies', value: Math.floor(Math.random() * 30) + 25, icon: '📝' },
-      { label: 'Factures fournisseurs', value: Math.floor(Math.random() * 10) + 8, icon: '🧾' },
-      { label: 'Opérations bancaires', value: Math.floor(Math.random() * 10) + 5, icon: '🏦' },
-      { label: 'Éléments à vérifier', value: Math.floor(Math.random() * 3), icon: '⚠️' },
-    ],
-    message: "La saisie a été effectuée avec succès sur Pennylane. Les écritures comptables ont été vérifiées et les comptes sont équilibrés.",
-    color: 'emerald',
-  }),
-  revision: (clientNom) => ({
-    titre: `🔍 Révision terminée — ${clientNom}`,
-    stats: [
-      { label: 'Comptes analysés', value: Math.floor(Math.random() * 50) + 80, icon: '📊' },
-      { label: 'Anomalies détectées', value: Math.floor(Math.random() * 2), icon: '⚠️' },
-      { label: 'Soldes vérifiés', value: Math.floor(Math.random() * 30) + 40, icon: '✅' },
-      { label: 'Score de conformité', value: `${Math.floor(Math.random() * 15) + 85}%`, icon: '⭐' },
-    ],
-    message: "La révision par la balance est complète. Aucune anomalie majeure détectée. Les cycles clients, fournisseurs et TVA sont conformes.",
-    color: 'purple',
-  }),
-  cloture: (clientNom) => ({
-    titre: `✅ Clôture effectuée — ${clientNom}`,
-    stats: [
-      { label: 'Écritures d\'inventaire', value: Math.floor(Math.random() * 15) + 10, icon: '📋' },
-      { label: 'Amortissements', value: Math.floor(Math.random() * 8) + 5, icon: '🏭' },
-      { label: 'Provisions calculées', value: Math.floor(Math.random() * 4) + 2, icon: '💰' },
-      { label: 'Liasse exportée', value: 'Oui', icon: '📤' },
-    ],
-    message: "La clôture a été réalisée avec succès. Les écritures de fin d'exercice ont été passées et la liasse fiscale est prête pour télétransmission.",
-    color: 'emerald',
-  }),
-  relances: (clientNom) => ({
-    titre: `📬 Relances envoyées — ${clientNom}`,
-    stats: [
-      { label: 'Relances envoyées', value: Math.floor(Math.random() * 5) + 2, icon: '📬' },
-      { label: 'Montant total', value: `${(Math.random() * 8000 + 2000).toFixed(0)} €`, icon: '💶' },
-      { label: 'Créances > 60j', value: Math.floor(Math.random() * 3) + 1, icon: '🔴' },
-      { label: 'En attente réponse', value: Math.floor(Math.random() * 3) + 1, icon: '⏳' },
-    ],
-    message: "Les relances ont été envoyées aux clients en retard de paiement. Un suivi sera effectué dans 7 jours si aucune réponse n'est reçue.",
-    color: 'amber',
-  }),
+// ─── Détection NLP ────────────────────────────────────────────────────────────
+
+function detectIntent(text) {
+  const t = text.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // enlève les accents pour la détection
+
+  // Rapport + fournisseur (ex: "rapport LECLERC", "rapport sur leclerc")
+  const rapportMatch = text.match(/rapport\s+(?:sur\s+|de\s+|pour\s+)?([A-Z][A-Z0-9\s\-_']+)/i)
+  if (rapportMatch) {
+    const fournisseur = rapportMatch[1].trim().toUpperCase()
+    return { tache: 'rapport', fournisseur }
+  }
+  if (t.includes('rapport')) return { tache: 'rapport', fournisseur: '' }
+
+  // Révision spécialisée (doit passer avant "revision" générique)
+  if (t.includes('revision fournisseur') || t.includes('fournisseur') && t.includes('revision'))
+    return { tache: 'rev_fourn', fournisseur: '' }
+  if (t.includes('revision client') || t.includes('client') && t.includes('revision'))
+    return { tache: 'rev_client', fournisseur: '' }
+
+  // Tâches simples — mot entier uniquement
+  if (/\bsaisie\b/.test(t)) return { tache: 'saisie', fournisseur: '' }
+  if (/\brevision\b/.test(t) || /\bbalance\b/.test(t)) return { tache: 'revision', fournisseur: '' }
+  if (/\brapprochement\b/.test(t)) return { tache: 'rapprochement', fournisseur: '' }
+  if (/\brelance/.test(t) || /\bimpaye/.test(t)) return { tache: 'relances', fournisseur: '' }
+
+  return null
 }
+
+// ─── Composant indicateur de réflexion ───────────────────────────────────────
 
 function ThinkingIndicator() {
   return (
@@ -81,26 +87,28 @@ function ThinkingIndicator() {
   )
 }
 
+// ─── Progression animée de la tâche ──────────────────────────────────────────
+
 function TaskProgress({ task, onComplete }) {
   const [completedSteps, setCompletedSteps] = useState([])
   const [currentStep, setCurrentStep] = useState(0)
-  const steps = taskSteps[task.type] || taskSteps.saisie
+
+  // Choisir les étapes en fonction de la tâche
+  const stepsKey = task.tache === 'saisie' ? 'saisie'
+    : task.tache === 'revision' || task.tache === 'rev_fourn' || task.tache === 'rev_client' ? 'revision'
+    : task.tache === 'relances' ? 'relances'
+    : 'revision'
+  const steps = taskSteps[stepsKey] || taskSteps.revision
 
   useEffect(() => {
-    let totalDelay = 500
+    let delay = 500
     steps.forEach((step, i) => {
-      setTimeout(() => {
-        setCurrentStep(i)
-      }, totalDelay)
-      totalDelay += step.duration / 2
-      setTimeout(() => {
-        setCompletedSteps(prev => [...prev, step.id])
-      }, totalDelay)
-      totalDelay += step.duration / 2
+      setTimeout(() => setCurrentStep(i), delay)
+      delay += step.duration / 2
+      setTimeout(() => setCompletedSteps(prev => [...prev, step.id]), delay)
+      delay += step.duration / 2
     })
-    setTimeout(() => {
-      onComplete()
-    }, totalDelay + 400)
+    setTimeout(onComplete, delay + 400)
   }, [])
 
   const progress = (completedSteps.length / steps.length) * 100
@@ -121,32 +129,19 @@ function TaskProgress({ task, onComplete }) {
           </div>
           <span className="text-sm font-bold text-brand-600">{Math.round(progress)}%</span>
         </div>
-
-        {/* Progress bar */}
         <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
-          <div
-            className="h-full gradient-brand rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full gradient-brand rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
-
-        {/* Steps */}
         <div className="space-y-2">
           {steps.map((step, i) => {
-            const isCompleted = completedSteps.includes(step.id)
-            const isActive = currentStep === i && !isCompleted
+            const done = completedSteps.includes(step.id)
+            const active = currentStep === i && !done
             return (
-              <div key={step.id} className={`flex items-center gap-3 text-sm transition-all duration-300 ${
-                isCompleted ? 'text-slate-600' : isActive ? 'text-slate-800' : 'text-slate-300'
-              }`}>
-                {isCompleted ? (
-                  <CheckCircle size={14} className="text-emerald-500 flex-shrink-0" />
-                ) : isActive ? (
-                  <div className="w-3.5 h-3.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                ) : (
-                  <div className="w-3.5 h-3.5 rounded-full border border-slate-200 flex-shrink-0" />
-                )}
-                <span className={isActive ? 'font-medium' : ''}>{step.label}</span>
+              <div key={step.id} className={`flex items-center gap-3 text-sm transition-all ${done ? 'text-slate-600' : active ? 'text-slate-800' : 'text-slate-300'}`}>
+                {done ? <CheckCircle size={14} className="text-emerald-500 flex-shrink-0" />
+                  : active ? <div className="w-3.5 h-3.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                  : <div className="w-3.5 h-3.5 rounded-full border border-slate-200 flex-shrink-0" />}
+                <span className={active ? 'font-medium' : ''}>{step.label}</span>
               </div>
             )
           })}
@@ -156,50 +151,57 @@ function TaskProgress({ task, onComplete }) {
   )
 }
 
-function TaskReport({ result, clientNom }) {
-  const colorMap = {
-    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-100', title: 'text-emerald-800', stat: 'bg-emerald-100 text-emerald-700' },
-    purple: { bg: 'bg-purple-50', border: 'border-purple-100', title: 'text-purple-800', stat: 'bg-purple-100 text-purple-700' },
-    amber: { bg: 'bg-amber-50', border: 'border-amber-100', title: 'text-amber-800', stat: 'bg-amber-100 text-amber-700' },
+// ─── Résultat du run ──────────────────────────────────────────────────────────
+
+function RunResult({ runId, tache, clientNom, fournisseur, error }) {
+  if (error) {
+    return (
+      <div className="flex items-start gap-3 animate-slide-up">
+        <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
+          <Bot size={16} className="text-white" />
+        </div>
+        <div className="flex-1 bg-red-50 border border-red-200 rounded-2xl rounded-tl-sm p-5 shadow-sm max-w-lg">
+          <div className="flex items-center gap-2 font-bold text-red-800 mb-2">
+            <AlertTriangle size={16} />
+            Erreur lors du lancement
+          </div>
+          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-xs text-red-500 mt-2">Vérifiez que le VPS est accessible et que le dossier existe dans Airtable.</p>
+        </div>
+      </div>
+    )
   }
-  const colors = colorMap[result.color] || colorMap.emerald
 
   return (
     <div className="flex items-start gap-3 animate-slide-up">
       <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
         <Bot size={16} className="text-white" />
       </div>
-      <div className={`flex-1 rounded-2xl rounded-tl-sm border p-5 shadow-sm max-w-lg ${colors.bg} ${colors.border}`}>
-        <div className="font-bold text-slate-900 mb-3">{result.titre}</div>
-
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          {result.stats.map((stat, i) => (
-            <div key={i} className="bg-white/70 rounded-xl p-3">
-              <div className="text-lg mb-0.5">{stat.icon}</div>
-              <div className="text-xl font-bold text-slate-900">{stat.value}</div>
-              <div className="text-xs text-slate-500">{stat.label}</div>
-            </div>
-          ))}
+      <div className="flex-1 bg-emerald-50 border border-emerald-200 rounded-2xl rounded-tl-sm p-5 shadow-sm max-w-lg">
+        <div className="font-bold text-emerald-800 mb-2">
+          ✅ {TASK_LABELS[tache] || tache} lancée — {clientNom}
+          {fournisseur && ` / ${fournisseur}`}
         </div>
-
-        <p className="text-sm text-slate-600 mb-4">{result.message}</p>
-
-        <div className="flex gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-white/80 text-slate-700 text-xs font-semibold rounded-lg hover:bg-white transition-colors border border-white/50">
-            <FileText size={12} /> Voir le rapport complet
-          </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-white/80 text-slate-700 text-xs font-semibold rounded-lg hover:bg-white transition-colors border border-white/50">
-            <Download size={12} /> Exporter PDF
-          </button>
-        </div>
+        {runId && (
+          <p className="text-xs text-emerald-700 font-mono mb-3">
+            Run ID : {runId}
+          </p>
+        )}
+        <p className="text-sm text-emerald-700 mb-3">
+          ComptaMind travaille sur Pennylane. Le rapport sera disponible dans 1 à 5 minutes dans la page <strong>Rapports</strong>.
+        </p>
+        <a href="/rapports" className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/80 text-emerald-700 text-xs font-semibold rounded-lg hover:bg-white transition-colors border border-emerald-200">
+          <FileText size={12} /> Voir les rapports
+          <ExternalLink size={10} />
+        </a>
       </div>
     </div>
   )
 }
 
-function Message({ msg, clients }) {
-  const client = msg.clientId ? clients.find(c => c.id === msg.clientId) : null
+// ─── Message simple ───────────────────────────────────────────────────────────
 
+function Message({ msg }) {
   if (msg.type === 'user') {
     return (
       <div className="flex items-start gap-3 justify-end animate-slide-up">
@@ -212,290 +214,205 @@ function Message({ msg, clients }) {
       </div>
     )
   }
-
-  if (msg.type === 'assistant') {
-    return (
-      <div className="flex items-start gap-3 animate-slide-up">
-        <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
-          <Bot size={16} className="text-white" />
-        </div>
-        <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm max-w-lg">
-          <p className="text-sm text-slate-700">{msg.text}</p>
-          {client && (
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <span>Dossier :</span>
-              <span className="font-medium text-brand-600">{client.nom}</span>
-            </div>
-          )}
-        </div>
+  return (
+    <div className="flex items-start gap-3 animate-slide-up">
+      <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
+        <Bot size={16} className="text-white" />
       </div>
-    )
-  }
-
-  return null
+      <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm max-w-lg">
+        <p className="text-sm text-slate-700">{msg.text}</p>
+      </div>
+    </div>
+  )
 }
 
+// ─── Page principale ──────────────────────────────────────────────────────────
+
 export default function ComptaMindPage() {
-  const [searchParams] = useSearchParams()
-  const clientIdFromUrl = searchParams.get('client')
-  const [selectedClientId, setSelectedClientId] = useState(clientIdFromUrl || '')
+  const [airtableClients, setAirtableClients] = useState([])
+  const [loadingClients, setLoadingClients] = useState(true)
+  const [selectedClientId, setSelectedClientId] = useState('')
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([])
   const [thinking, setThinking] = useState(false)
-  const [runningTask, setRunningTask] = useState(null)
-  const [taskResult, setTaskResult] = useState(null)
+  const [runningTask, setRunningTask] = useState(null)   // tâche en animation
+  const [pendingRun, setPendingRun] = useState(null)     // appel VPS en attente
+  const [runResult, setRunResult] = useState(null)       // résultat réel VPS
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
-  const { clients } = useAppStore()
-  const navigate = useNavigate()
+  // Charger les clients depuis Airtable
+  useEffect(() => {
+    listRecords(TBL_CLIENTS)
+      .then(setAirtableClients)
+      .catch(() => {})
+      .finally(() => setLoadingClients(false))
+  }, [])
 
-  const selectedClient = clients.find(c => c.id === selectedClientId)
+  const selectedClient = airtableClients.find(c => c.id === selectedClientId)
+  const clientName = selectedClient?.fields?.[FLD_CLIENT_NAME] || selectedClient?.fields?.['Client Name'] || ''
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, thinking, runningTask, taskResult])
+  }, [messages, thinking, runningTask, runResult])
 
+  // Message de bienvenue
   useEffect(() => {
-    if (messages.length === 0) {
-      const welcomeMsg = {
-        id: 'welcome',
-        type: 'assistant',
-        text: selectedClient
-          ? `Bonjour ! Je suis ComptaMind, prêt à travailler sur le dossier **${selectedClient.nom}**. Que souhaitez-vous faire ? Vous pouvez utiliser les boutons rapides ci-dessous ou me donner une instruction directement.`
-          : "Bonjour ! Je suis ComptaMind, votre collaborateur comptable IA. Sélectionnez un client et dites-moi ce que vous souhaitez faire — saisie, révision, clôture, relances, ou toute autre tâche comptable.",
-        timestamp: new Date(),
-      }
-      setMessages([welcomeMsg])
-    }
+    setMessages([{
+      id: 'welcome',
+      type: 'assistant',
+      text: clientName
+        ? `Bonjour ! Je suis prêt à travailler sur le dossier **${clientName}**. Dites-moi ce que vous souhaitez faire : saisie, révision, rapport, relances — ou demandez un rapport spécifique, ex : "rapport LECLERC".`
+        : "Bonjour ! Je suis ComptaMind, votre collaborateur comptable IA. Sélectionnez un dossier et donnez-moi une instruction.",
+    }])
   }, [selectedClientId])
 
-  const runTask = (taskType, clientId) => {
-    const client = clients.find(c => c.id === clientId)
-    if (!client) return
+  const launchTask = async (tache, fournisseur = '') => {
+    if (!selectedClientId || !clientName) return
 
-    const taskLabels = { saisie: 'Saisie mensuelle', revision: 'Révision par la balance', cloture: 'Clôture de l\'exercice', relances: 'Relances clients' }
-    const taskLabel = taskLabels[taskType] || taskType
+    const label = TASK_LABELS[tache] || tache
+    const title = `${label}${fournisseur ? ` / ${fournisseur}` : ''} — ${clientName}`
 
-    // Add user message
-    const userMsg = { id: Date.now() + 'u', type: 'user', text: `Lance la ${taskLabel.toLowerCase()} pour ${client.nom}`, timestamp: new Date() }
-    setMessages(prev => [...prev, userMsg])
+    // Message d'acquittement
+    addMsg('assistant', `Compris ! Je lance : **${label}**${fournisseur ? ` pour ${fournisseur}` : ''} sur le dossier **${clientName}**. Connexion à Pennylane en cours...`)
 
-    // Show thinking
-    setThinking(true)
-    setTimeout(() => {
-      setThinking(false)
+    // Lancer l'animation ET l'appel VPS en parallèle
+    setRunningTask({ tache, title, clientNom: clientName, fournisseur })
+    setRunResult(null)
 
-      // Add assistant acknowledgment
-      const ackMsg = {
-        id: Date.now() + 'a',
-        type: 'assistant',
-        text: `Compris ! Je lance la ${taskLabel.toLowerCase()} pour **${client.nom}**. Je me connecte à Pennylane et commence le traitement...`,
-        clientId: client.id,
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, ackMsg])
-
-      // Start task progress
-      setRunningTask({
-        id: Date.now().toString(),
-        type: taskType,
-        title: `${taskLabel} — ${client.nom}`,
-        clientId: client.id,
-        clientNom: client.nom,
-      })
-      setTaskResult(null)
-    }, 1500)
+    // Appel VPS réel
+    const vtache = TACHE_MAP[tache] || tache
+    try {
+      const res = await callVPS({ client: clientName, tache: vtache, exercice: '2025', fournisseur })
+      setPendingRun({ runId: res.run_id || res.airtable_record_id, tache, clientNom: clientName, fournisseur, error: null })
+    } catch (e) {
+      setPendingRun({ runId: null, tache, clientNom: clientName, fournisseur, error: e.message })
+    }
   }
 
-  const handleTaskComplete = () => {
-    if (!runningTask) return
-    const resultTemplate = taskResultTemplates[runningTask.type]
-    const result = resultTemplate ? resultTemplate(runningTask.clientNom) : null
-    setTaskResult(result)
+  const handleTaskAnimationComplete = () => {
     setRunningTask(null)
+    // Afficher le résultat VPS dès que l'animation se termine
+    if (pendingRun) {
+      setRunResult(pendingRun)
+      setPendingRun(null)
+    }
+  }
 
-    // Add completion message
-    setTimeout(() => {
-      const doneMsg = {
-        id: Date.now() + 'd',
-        type: 'assistant',
-        text: `La tâche est terminée ! Voici le compte-rendu ci-dessus. Puis-je faire autre chose pour vous ?`,
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, doneMsg])
-    }, 500)
+  const addMsg = (type, text) => {
+    setMessages(prev => [...prev, { id: Date.now() + Math.random(), type, text }])
   }
 
   const handleSend = () => {
-    if (!input.trim()) return
+    if (!input.trim() || runningTask) return
     const text = input.trim()
     setInput('')
-
-    const userMsg = { id: Date.now() + 'u', type: 'user', text, timestamp: new Date() }
-    setMessages(prev => [...prev, userMsg])
-
+    addMsg('user', text)
     setThinking(true)
 
-    // Detect task keywords
-    const lowerText = text.toLowerCase()
-    let detectedTask = null
-    if (lowerText.includes('saisie') || lowerText.includes('saisi')) detectedTask = 'saisie'
-    else if (lowerText.includes('révision') || lowerText.includes('revision') || lowerText.includes('balance')) detectedTask = 'revision'
-    else if (lowerText.includes('clôture') || lowerText.includes('cloture') || lowerText.includes('fermer')) detectedTask = 'cloture'
-    else if (lowerText.includes('relance') || lowerText.includes('impayé')) detectedTask = 'relances'
+    const intent = detectIntent(text)
 
     setTimeout(() => {
       setThinking(false)
 
-      if (detectedTask && selectedClientId) {
-        const client = clients.find(c => c.id === selectedClientId)
-        const taskLabels = { saisie: 'saisie mensuelle', revision: 'révision par la balance', cloture: 'clôture', relances: 'relances clients' }
-        const ackMsg = {
-          id: Date.now() + 'a',
-          type: 'assistant',
-          text: `Bien compris ! Je lance la ${taskLabels[detectedTask]} pour **${client?.nom || 'le dossier sélectionné'}**. Connexion à Pennylane en cours...`,
-          clientId: selectedClientId,
-          timestamp: new Date(),
-        }
-        setMessages(prev => [...prev, ackMsg])
-        setRunningTask({
-          id: Date.now().toString(),
-          type: detectedTask,
-          title: `${taskLabels[detectedTask].charAt(0).toUpperCase() + taskLabels[detectedTask].slice(1)} — ${client?.nom}`,
-          clientId: selectedClientId,
-          clientNom: client?.nom || '',
-        })
-      } else if (detectedTask && !selectedClientId) {
-        const ackMsg = {
-          id: Date.now() + 'a',
-          type: 'assistant',
-          text: `Je vois que vous souhaitez lancer une ${detectedTask}. Veuillez d'abord sélectionner un client dans le menu déroulant ci-dessus.`,
-          timestamp: new Date(),
-        }
-        setMessages(prev => [...prev, ackMsg])
-      } else {
-        const responses = [
-          "Je comprends votre demande. Pour lancer une action comptable, utilisez les boutons rapides ou dites-moi : « Lance la saisie de mars pour [nom du client] ».",
-          "Bien noté ! Je suis prêt à traiter vos tâches comptables. Sélectionnez un client et choisissez une action pour commencer.",
-          "Parfait ! N'hésitez pas à me donner des instructions spécifiques comme : « Révise la balance de Bellevoie SARL » ou « Envoie les relances pour tous les clients ».",
-        ]
-        const ackMsg = {
-          id: Date.now() + 'a',
-          type: 'assistant',
-          text: responses[Math.floor(Math.random() * responses.length)],
-          timestamp: new Date(),
-        }
-        setMessages(prev => [...prev, ackMsg])
+      if (!selectedClientId) {
+        addMsg('assistant', "Veuillez d'abord sélectionner un dossier dans le menu ci-dessus.")
+        return
       }
-    }, 1500)
+
+      if (intent) {
+        launchTask(intent.tache, intent.fournisseur)
+      } else {
+        addMsg('assistant',
+          "Je n'ai pas reconnu de tâche comptable dans votre message. Vous pouvez me demander :\n" +
+          "• \"Saisie\" — traitement des factures\n" +
+          "• \"Révision balance\" — analyse des comptes 1 à 7\n" +
+          "• \"Rapport LECLERC\" — rapport sur un fournisseur\n" +
+          "• \"Relances\" — relances clients en retard"
+        )
+      }
+    }, 1000)
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
   const suggestions = [
-    'Lance la saisie du mois de mars',
-    'Révise la balance et signale les anomalies',
-    'Envoie les relances aux clients en retard',
-    'Prépare la clôture de l\'exercice',
+    'Révision balance',
+    'Rapport LECLERC',
+    'Saisie des factures',
+    'Relances clients',
   ]
 
   return (
     <div className="flex flex-col h-screen">
-      <Header
-        title="ComptaMind"
-        subtitle="Votre collaborateur comptable IA"
-        breadcrumbs={['ComptaMind']}
+      <Header title="ComptaMind IA" subtitle="Votre collaborateur comptable IA"
         actions={
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-emerald-700 text-xs font-semibold">IA active</span>
-            </div>
+          <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-emerald-700 text-xs font-semibold">IA active</span>
           </div>
         }
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Client selector bar */}
+        {/* Sélecteur de dossier */}
         <div className="bg-white border-b border-slate-100 px-8 py-3 flex items-center gap-4">
           <span className="text-sm font-medium text-slate-600 flex-shrink-0">Dossier actif :</span>
           <div className="relative">
             <select
               value={selectedClientId}
-              onChange={e => {
-                setSelectedClientId(e.target.value)
-                setMessages([])
-                setRunningTask(null)
-                setTaskResult(null)
-              }}
+              onChange={e => { setSelectedClientId(e.target.value); setRunningTask(null); setRunResult(null) }}
               className="appearance-none bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-8 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 min-w-64"
             >
-              <option value="">— Sélectionner un client —</option>
-              {clients.map(c => (
-                <option key={c.id} value={c.id}>{c.nom}</option>
-              ))}
+              <option value="">— Sélectionner un dossier —</option>
+              {loadingClients && <option disabled>Chargement Airtable...</option>}
+              {airtableClients.map(c => {
+                const name = c.fields?.[FLD_CLIENT_NAME] || c.fields?.['Client Name'] || c.id
+                return <option key={c.id} value={c.id}>{name}</option>
+              })}
             </select>
             <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
-          {selectedClient && (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span>·</span>
-              <span>{selectedClient.secteur}</span>
-              <span>·</span>
-              <span className={`badge ${selectedClient.avancement === 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-                {selectedClient.avancement}% complété
-              </span>
-            </div>
+          {clientName && (
+            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{clientName}</span>
           )}
         </div>
 
-        {/* Quick actions */}
+        {/* Actions rapides */}
         <div className="bg-white border-b border-slate-100 px-8 py-3 flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide flex-shrink-0">Actions rapides :</span>
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide flex-shrink-0">Rapide :</span>
           <div className="flex gap-2 flex-wrap">
-            {quickActions.map(action => (
+            {quickActions.map(a => (
               <button
-                key={action.id}
-                onClick={() => selectedClientId ? runTask(action.taskType, selectedClientId) : null}
+                key={a.id}
+                onClick={() => launchTask(a.id)}
                 disabled={!selectedClientId || !!runningTask}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${action.color}`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${a.color}`}
               >
-                <span>{action.icon}</span>
-                {action.label}
+                <span>{a.icon}</span>{a.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Messages area */}
+        {/* Zone messages */}
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4 bg-slate-50">
-          {messages.map(msg => (
-            <Message key={msg.id} msg={msg} clients={clients} />
-          ))}
+          {messages.map(msg => <Message key={msg.id} msg={msg} />)}
           {thinking && <ThinkingIndicator />}
-          {runningTask && (
-            <TaskProgress task={runningTask} onComplete={handleTaskComplete} />
-          )}
-          {taskResult && <TaskReport result={taskResult} clientNom={selectedClient?.nom || ''} />}
+          {runningTask && <TaskProgress task={runningTask} onComplete={handleTaskAnimationComplete} />}
+          {runResult && <RunResult {...runResult} />}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Suggestions (when no messages beyond welcome) */}
+        {/* Suggestions */}
         {messages.length <= 1 && !thinking && !runningTask && (
           <div className="px-8 py-3 bg-slate-50 border-t border-slate-100">
             <div className="flex gap-2 flex-wrap">
               {suggestions.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => { setInput(s); inputRef.current?.focus() }}
-                  className="text-xs px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-full hover:border-brand-300 hover:text-brand-700 transition-colors"
-                >
+                <button key={i} onClick={() => { setInput(s); inputRef.current?.focus() }}
+                  className="text-xs px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-full hover:border-brand-300 hover:text-brand-700 transition-colors">
                   {s}
                 </button>
               ))}
@@ -503,7 +420,7 @@ export default function ComptaMindPage() {
           </div>
         )}
 
-        {/* Input area */}
+        {/* Zone saisie */}
         <div className="bg-white border-t border-slate-100 px-8 py-4">
           <div className="flex items-end gap-3 max-w-4xl mx-auto">
             <div className="flex-1 relative">
@@ -512,14 +429,11 @@ export default function ComptaMindPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={selectedClientId ? `Donnez une instruction à ComptaMind pour ${selectedClient?.nom}...` : "Sélectionnez un client puis donnez une instruction à ComptaMind..."}
+                placeholder={clientName ? `Instruction pour ${clientName}... (ex: "rapport LECLERC", "saisie", "révision")` : "Sélectionnez un dossier puis donnez une instruction..."}
                 rows={1}
                 style={{ resize: 'none', maxHeight: '120px' }}
                 className="w-full px-4 py-3 pr-12 text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-slate-400"
-                onInput={e => {
-                  e.target.style.height = 'auto'
-                  e.target.style.height = e.target.scrollHeight + 'px'
-                }}
+                onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
               />
             </div>
             <button
