@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Bot, AlertTriangle, CheckCircle, Clock, Building2, Play, Bug } from 'lucide-react'
+import { Search, Bot, AlertTriangle, CheckCircle, Clock, Building2, Play, Bug, Plus, X, Eye, EyeOff } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { listRecords } from '../lib/airtable'
 import { runTask, runDebug } from '../lib/api'
@@ -218,6 +218,95 @@ function ClientCard({ record, onLaunch }) {
   )
 }
 
+// ─── Modal Nouveau Dossier ────────────────────────────────────────────────────
+
+function NewDossierModal({ onClose, onCreated }) {
+  const [nom, setNom] = useState('')
+  const [token, setToken] = useState('')
+  const [exercice, setExercice] = useState('2026')
+  const [showToken, setShowToken] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!nom.trim() || !token.trim()) return
+    setLoading(true); setError(''); setResult(null)
+    try {
+      const res = await runTask({ client: nom.trim(), tache: 'onboarding', exercice, fournisseur: '' })
+      setResult(res)
+      if (onCreated) setTimeout(onCreated, 3000)
+    } catch (e) {
+      // Si onboarding non encore déployé côté VPS, afficher message explicatif
+      if (e.message.includes('422') || e.message.includes('not found') || e.message.includes('tache')) {
+        setError('La tâche "onboarding" est en cours de déploiement côté serveur. Contactez AC pour créer le dossier manuellement dans Airtable.')
+      } else {
+        setError(e.message)
+      }
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slide-up">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Nouveau dossier</h2>
+            <p className="text-sm text-slate-500">ComptaMind va créer et enrichir le dossier automatiquement</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="label">Nom du dossier (tel que dans Pennylane)</label>
+            <input className="input" value={nom} onChange={e => setNom(e.target.value)} placeholder="ex: ATALAO" required />
+          </div>
+          <div>
+            <label className="label">Token Pennylane du dossier</label>
+            <div className="relative">
+              <input
+                className="input pr-10"
+                type={showToken ? 'text' : 'password'}
+                value={token}
+                onChange={e => setToken(e.target.value)}
+                placeholder="pat_xxxxxxxx..."
+                required
+              />
+              <button type="button" onClick={() => setShowToken(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="label">Exercice en cours</label>
+            <input className="input" value={exercice} onChange={e => setExercice(e.target.value)} placeholder="2026" />
+          </div>
+
+          {result && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-800">
+              <p className="font-semibold mb-1">Onboarding lancé ✓</p>
+              <p className="text-xs">ComptaMind va récupérer les infos Pennylane + Pappers et créer le dossier dans Airtable. Rafraîchissez la liste dans 1-2 minutes.</p>
+            </div>
+          )}
+          {error && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">{error}</div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">Annuler</button>
+            <button type="submit" disabled={loading || !!result} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={15} />}
+              Créer le dossier
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function ClientsPage() {
@@ -226,6 +315,7 @@ export default function ClientsPage() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [selectedClient, setSelectedClient] = useState(null)
+  const [showNewDossier, setShowNewDossier] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -254,6 +344,12 @@ export default function ClientsPage() {
       <Header
         title="Mes clients"
         subtitle={loading ? 'Chargement…' : `${clients.length} dossier${clients.length > 1 ? 's' : ''} dans Airtable`}
+        actions={
+          <button onClick={() => setShowNewDossier(true)} className="btn-primary flex items-center gap-2 text-sm">
+            <Plus size={15} />
+            Nouveau dossier
+          </button>
+        }
       />
 
       <div className="p-6 space-y-6">
@@ -333,6 +429,18 @@ export default function ClientsPage() {
       {/* Modal Run */}
       {selectedClient && (
         <RunModal client={selectedClient} onClose={() => setSelectedClient(null)} />
+      )}
+
+      {/* Modal Nouveau dossier */}
+      {showNewDossier && (
+        <NewDossierModal
+          onClose={() => setShowNewDossier(false)}
+          onCreated={() => {
+            setShowNewDossier(false)
+            setLoading(true)
+            listRecords(TBL_CLIENTS).then(setClients).finally(() => setLoading(false))
+          }}
+        />
       )}
     </div>
   )
