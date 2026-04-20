@@ -15,7 +15,14 @@ async function call(endpoint, method = "GET", body = null) {
   if (body) init.body = JSON.stringify(body);
 
   const res = await fetch(url, init);
-  const data = await res.json();
+
+  let data;
+  const text = await res.text();
+  try {
+    data = JSON.parse(text);
+  } catch (_) {
+    throw new Error(`Réponse inattendue du serveur (HTTP ${res.status}). Vérifiez que la Netlify Function est bien déployée.`);
+  }
 
   if (!res.ok) {
     throw new Error(data.erreur || data.detail || `Erreur ${res.status}`);

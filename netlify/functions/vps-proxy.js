@@ -27,17 +27,29 @@ exports.handler = async (event) => {
   if (secret) reqHeaders["X-ComptaMind-Secret"] = secret;
 
   try {
-    const fetchOptions = { method: isPost ? "POST" : "GET", headers: reqHeaders };
+    const fetchOptions = {
+      method: isPost ? "POST" : "GET",
+      headers: reqHeaders,
+      signal: AbortSignal.timeout(30000), // 30s max
+    };
     if (isPost && event.body) fetchOptions.body = event.body;
 
     const resp = await fetch(`${VPS_URL}${endpoint}`, fetchOptions);
     const text = await resp.text();
 
-    return {
-      statusCode: resp.status,
-      headers: CORS,
-      body: text,
-    };
+    // Si la réponse n'est pas du JSON valide, on wrappe l'erreur
+    let body = text;
+    try {
+      JSON.parse(text);
+    } catch (_) {
+      body = JSON.stringify({
+        succes: false,
+        erreur: `Le VPS a renvoyé une réponse inattendue (HTTP ${resp.status})`,
+        detail: text.slice(0, 200),
+      });
+    }
+
+    return { statusCode: resp.status, headers: CORS, body };
   } catch (err) {
     return {
       statusCode: 502,
