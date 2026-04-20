@@ -59,7 +59,7 @@ export default function ClientDetailPage() {
     <div>
       <Header
         title={client.nom}
-        subtitle={`${client.secteur} · ${client.siren}`}
+        subtitle={client.secteur}
         breadcrumbs={['Clients', client.nom]}
         actions={
           <div className="flex items-center gap-2">
@@ -217,7 +217,6 @@ export default function ClientDetailPage() {
                 <h3 className="text-sm font-bold text-slate-900 mb-4">Informations</h3>
                 <div className="space-y-3">
                   {[
-                    { label: 'SIREN', value: client.siren },
                     { label: 'Responsable', value: client.responsable },
                     { label: 'Régime', value: 'IS' },
                     { label: 'TVA', value: 'Mensuelle' },

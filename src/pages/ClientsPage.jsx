@@ -188,7 +188,6 @@ function ClientCard({ record, onLaunch }) {
           </div>
           <div>
             <h3 className="font-bold text-slate-900">{name}</h3>
-            {siren && <p className="text-xs text-slate-400">SIREN {siren}</p>}
           </div>
         </div>
         {obsMode ? (
