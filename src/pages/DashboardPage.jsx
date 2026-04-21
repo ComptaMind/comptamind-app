@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle, CheckCircle, Clock, ArrowRight,
   ChevronRight, RefreshCw, Building2, Zap, Bot,
-  TrendingUp, Play, Eye, Sparkles, CircleDot
+  Play, Sparkles, CircleDot, Wrench, Eye, RotateCcw
 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { listRecords } from '../lib/airtable'
@@ -18,12 +18,21 @@ const cabinetName = import.meta.env.VITE_CABINET_NAME || 'votre cabinet'
 
 // ─── Priority Action Card ─────────────────────────────────────────────────────
 
-function PriorityCard({ level, icon: Icon, iconColor, bg, border, title, description, count, cta, onClick }) {
+function PriorityCard({ level, icon: Icon, iconColor, bg, border, title, description, count, primaryCta, primaryCtaIcon: CtaIcon, secondaryCta, secondaryCtaIcon: Cta2Icon, onPrimary, onSecondary }) {
+  const ctaColor = level === 'urgent'
+    ? 'bg-red-600 hover:bg-red-700 text-white'
+    : level === 'warning'
+    ? 'bg-amber-500 hover:bg-amber-600 text-white'
+    : 'bg-brand-600 hover:bg-brand-700 text-white'
+
+  const ghostColor = level === 'urgent'
+    ? 'text-red-600 hover:bg-red-50 border-red-200'
+    : level === 'warning'
+    ? 'text-amber-600 hover:bg-amber-50 border-amber-200'
+    : 'text-brand-600 hover:bg-brand-50 border-brand-200'
+
   return (
-    <div
-      onClick={onClick}
-      className={`relative rounded-2xl border p-5 cursor-pointer group transition-all hover:shadow-md ${bg} ${border}`}
-    >
+    <div className={`relative rounded-2xl border p-5 transition-all hover:shadow-md ${bg} ${border}`}>
       <div className="flex items-start justify-between mb-4">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconColor}`}>
           <Icon size={18} />
@@ -36,8 +45,23 @@ function PriorityCard({ level, icon: Icon, iconColor, bg, border, title, descrip
       </div>
       <p className="font-semibold text-slate-900 text-sm mb-1">{title}</p>
       <p className="text-xs text-slate-500 leading-relaxed mb-4">{description}</p>
-      <div className={`flex items-center gap-1.5 text-xs font-semibold transition-all group-hover:gap-2.5 ${level === 'urgent' ? 'text-red-600' : level === 'warning' ? 'text-amber-600' : 'text-blue-600'}`}>
-        {cta} <ArrowRight size={12} />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onPrimary}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${ctaColor}`}
+        >
+          {CtaIcon && <CtaIcon size={12} />}
+          {primaryCta}
+        </button>
+        {secondaryCta && (
+          <button
+            onClick={onSecondary}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-white transition-colors ${ghostColor}`}
+          >
+            {Cta2Icon && <Cta2Icon size={12} />}
+            {secondaryCta}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -224,10 +248,14 @@ export default function DashboardPage() {
               bg={openAlertes.length > 0 ? 'bg-red-50/60' : 'bg-white'}
               border={openAlertes.length > 0 ? 'border-red-200' : 'border-slate-100'}
               title={openAlertes.length > 0 ? `${openAlertes.length} anomalie${openAlertes.length > 1 ? 's' : ''} détectée${openAlertes.length > 1 ? 's' : ''}` : 'Aucune anomalie'}
-              description={openAlertes.length > 0 ? 'Des incohérences ont été détectées dans vos dossiers. Examinez et corrigez.' : 'Tous vos dossiers sont conformes. Aucune incohérence détectée.'}
+              description={openAlertes.length > 0 ? 'Des incohérences ont été détectées dans vos dossiers. Révisez et corrigez maintenant.' : 'Tous vos dossiers sont conformes. Aucune incohérence détectée.'}
               count={openAlertes.length}
-              cta={openAlertes.length > 0 ? 'Examiner les anomalies' : 'Voir les rapports'}
-              onClick={() => navigate('/rapports')}
+              primaryCta={openAlertes.length > 0 ? 'Réviser' : 'Voir les rapports'}
+              primaryCtaIcon={openAlertes.length > 0 ? Eye : Eye}
+              secondaryCta={openAlertes.length > 0 ? 'Corriger via IA' : null}
+              secondaryCtaIcon={openAlertes.length > 0 ? Wrench : null}
+              onPrimary={() => navigate('/rapports')}
+              onSecondary={() => navigate('/comptamind')}
             />
             <PriorityCard
               level={errorTasks.length > 0 ? 'warning' : 'ok'}
@@ -236,10 +264,14 @@ export default function DashboardPage() {
               bg={errorTasks.length > 0 ? 'bg-amber-50/60' : 'bg-white'}
               border={errorTasks.length > 0 ? 'border-amber-200' : 'border-slate-100'}
               title={errorTasks.length > 0 ? `${errorTasks.length} tâche${errorTasks.length > 1 ? 's' : ''} en erreur` : 'Queue sans erreur'}
-              description={errorTasks.length > 0 ? 'Des tâches ComptaMind ont échoué et doivent être relancées.' : 'Toutes les tâches récentes se sont exécutées correctement.'}
+              description={errorTasks.length > 0 ? 'Des tâches ComptaMind ont échoué. Consultez les détails et relancez.' : 'Toutes les tâches récentes se sont exécutées correctement.'}
               count={errorTasks.length}
-              cta={errorTasks.length > 0 ? 'Voir les erreurs' : 'Voir l\'activité'}
-              onClick={() => navigate('/rapports')}
+              primaryCta={errorTasks.length > 0 ? 'Voir les détails' : 'Voir l\'activité'}
+              primaryCtaIcon={Eye}
+              secondaryCta={errorTasks.length > 0 ? 'Relancer' : null}
+              secondaryCtaIcon={errorTasks.length > 0 ? RotateCcw : null}
+              onPrimary={() => navigate('/rapports')}
+              onSecondary={() => navigate('/comptamind')}
             />
             <PriorityCard
               level={pendingApprovals.length > 0 ? 'warning' : 'ok'}
@@ -247,11 +279,15 @@ export default function DashboardPage() {
               iconColor={pendingApprovals.length > 0 ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}
               bg={pendingApprovals.length > 0 ? 'bg-blue-50/60' : 'bg-white'}
               border={pendingApprovals.length > 0 ? 'border-blue-200' : 'border-slate-100'}
-              title={pendingApprovals.length > 0 ? `${pendingApprovals.length} approbation${pendingApprovals.length > 1 ? 's' : ''} requise${pendingApprovals.length > 1 ? 's' : ''}` : 'Aucune approbation en attente'}
-              description={pendingApprovals.length > 0 ? 'ComptaMind attend votre feu vert avant d\'agir sur ces dossiers.' : 'ComptaMind travaille de façon autonome, aucune décision requise.'}
+              title={pendingApprovals.length > 0 ? `${pendingApprovals.length} approbation${pendingApprovals.length > 1 ? 's' : ''} requise${pendingApprovals.length > 1 ? 's' : ''}` : 'Tout est automatisé'}
+              description={pendingApprovals.length > 0 ? 'ComptaMind attend votre feu vert. Approuvez ou refusez chaque action.' : 'ComptaMind travaille de façon autonome. Aucune décision requise.'}
               count={pendingApprovals.length}
-              cta={pendingApprovals.length > 0 ? 'Approuver / Refuser' : 'Gérer l\'autonomie'}
-              onClick={() => navigate('/autonomie')}
+              primaryCta={pendingApprovals.length > 0 ? 'Approuver' : 'Gérer l\'autonomie'}
+              primaryCtaIcon={pendingApprovals.length > 0 ? CheckCircle : Zap}
+              secondaryCta={pendingApprovals.length > 0 ? 'Auto-résoudre' : null}
+              secondaryCtaIcon={pendingApprovals.length > 0 ? Zap : null}
+              onPrimary={() => navigate('/autonomie')}
+              onSecondary={() => navigate('/autorisations')}
             />
           </div>
         </div>

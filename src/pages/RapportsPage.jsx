@@ -62,7 +62,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className="text-2xl font-bold text-emerald-700">{done}</p>
-          <p className="text-xs text-emerald-600 font-medium">Tâche{done > 1 ? 's' : ''} réussie{done > 1 ? 's' : ''}</p>
+          <p className="text-xs text-emerald-600 font-medium">opération{done > 1 ? 's' : ''} corrigée{done > 1 ? 's' : ''}</p>
+          <p className="text-xs text-emerald-500 mt-0.5">{done > 0 ? 'Traitées avec succès' : 'Aucune exécution'}</p>
         </div>
       </div>
       <div className={`rounded-xl p-4 border flex items-center gap-3 ${errors > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
@@ -71,7 +72,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className={`text-2xl font-bold ${errors > 0 ? 'text-red-700' : 'text-slate-400'}`}>{errors}</p>
-          <p className={`text-xs font-medium ${errors > 0 ? 'text-red-600' : 'text-slate-400'}`}>Erreur{errors > 1 ? 's' : ''} à corriger</p>
+          <p className={`text-xs font-medium ${errors > 0 ? 'text-red-600' : 'text-slate-400'}`}>action{errors > 1 ? 's' : ''} en attente de correction</p>
+          <p className={`text-xs mt-0.5 ${errors > 0 ? 'text-red-500' : 'text-slate-400'}`}>{errors > 0 ? 'À relancer via ComptaMind IA' : 'Aucune erreur'}</p>
         </div>
       </div>
       <div className={`rounded-xl p-4 border flex items-center gap-3 ${openAlertes > 0 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
@@ -80,7 +82,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className={`text-2xl font-bold ${openAlertes > 0 ? 'text-amber-700' : 'text-slate-400'}`}>{openAlertes}</p>
-          <p className={`text-xs font-medium ${openAlertes > 0 ? 'text-amber-600' : 'text-slate-400'}`}>Alerte{openAlertes > 1 ? 's' : ''} ouverte{openAlertes > 1 ? 's' : ''}</p>
+          <p className={`text-xs font-medium ${openAlertes > 0 ? 'text-amber-600' : 'text-slate-400'}`}>anomalie{openAlertes > 1 ? 's' : ''} à traiter</p>
+          <p className={`text-xs mt-0.5 ${openAlertes > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{openAlertes > 0 ? 'Détectées par ComptaMind' : 'Aucune anomalie'}</p>
         </div>
       </div>
     </div>
