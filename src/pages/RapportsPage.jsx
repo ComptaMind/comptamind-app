@@ -1,73 +1,188 @@
 import { useState, useEffect } from 'react'
-import { FileText, RefreshCw, Clock, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  FileText, RefreshCw, CheckCircle, AlertCircle, Clock,
+  ChevronDown, ChevronUp, Download, AlertTriangle, Zap, CircleDot
+} from 'lucide-react'
 import Header from '../components/layout/Header'
 import { listRecords } from '../lib/airtable'
 import { TBL_QUEUE, TBL_ALERTES } from '../lib/airtable-schema'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function statusBadge(status) {
-  if (!status) return null
-  const s = String(status).toLowerCase()
-  if (s.includes('done') || s.includes('terminé') || s.includes('success')) {
-    return <span className="badge text-emerald-700 bg-emerald-50 border border-emerald-200 flex items-center gap-1"><CheckCircle size={12} />Terminé</span>
-  }
-  if (s.includes('error') || s.includes('erreur')) {
-    return <span className="badge text-red-700 bg-red-50 border border-red-200 flex items-center gap-1"><AlertCircle size={12} />Erreur</span>
-  }
-  if (s.includes('progress') || s.includes('cours')) {
-    return <span className="badge text-blue-700 bg-blue-50 border border-blue-200 flex items-center gap-1">
-      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />En cours
-    </span>
-  }
-  return <span className="badge text-slate-600 bg-slate-100">{status}</span>
-}
-
 function formatDate(str) {
   if (!str) return ''
-  return new Date(str).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(str).toLocaleString('fr-FR', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  })
 }
 
-// ─── Carte rapport ─────────────────────────────────────────────────────────
+function getTaskStatus(status) {
+  const s = String(status || '').toLowerCase()
+  if (s.includes('done') || s.includes('terminé') || s.includes('success'))
+    return { label: 'Terminé', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle }
+  if (s.includes('error') || s.includes('erreur'))
+    return { label: 'Erreur', color: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', icon: AlertCircle }
+  if (s.includes('progress') || s.includes('cours'))
+    return { label: 'En cours', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-400 animate-pulse', icon: Clock }
+  return { label: status || 'En attente', color: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', icon: CircleDot }
+}
 
-function ReportCard({ record }) {
+const typeLabels = {
+  revision_balance: 'Révision balance',
+  saisie_factures: 'Saisie factures',
+  revision_fournisseur: 'Révision fournisseur',
+  revision_client: 'Révision client',
+  relance_clients: 'Relances clients',
+  rapport: 'Rapport',
+  rapprochement_bancaire: 'Rapprochement bancaire',
+}
+
+// ─── Summary Banner ───────────────────────────────────────────────────────────
+
+function SummaryBanner({ queue, alertes }) {
+  const done = queue.filter(r => {
+    const s = (r.fields?.['Status'] || '').toLowerCase()
+    return s.includes('done') || s.includes('terminé') || s.includes('success')
+  }).length
+  const errors = queue.filter(r => {
+    const s = (r.fields?.['Status'] || '').toLowerCase()
+    return s.includes('error') || s.includes('erreur')
+  }).length
+  const openAlertes = alertes.filter(a => {
+    const s = (a.fields?.['Alert Status'] || '').toLowerCase()
+    return !s.includes('résolu') && !s.includes('resolved')
+  }).length
+
+  return (
+    <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="rounded-xl p-4 bg-emerald-50 border border-emerald-100 flex items-center gap-3">
+        <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <CheckCircle size={16} className="text-emerald-600" />
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-emerald-700">{done}</p>
+          <p className="text-xs text-emerald-600 font-medium">Tâche{done > 1 ? 's' : ''} réussie{done > 1 ? 's' : ''}</p>
+        </div>
+      </div>
+      <div className={`rounded-xl p-4 border flex items-center gap-3 ${errors > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${errors > 0 ? 'bg-red-100' : 'bg-slate-100'}`}>
+          <AlertCircle size={16} className={errors > 0 ? 'text-red-600' : 'text-slate-400'} />
+        </div>
+        <div>
+          <p className={`text-2xl font-bold ${errors > 0 ? 'text-red-700' : 'text-slate-400'}`}>{errors}</p>
+          <p className={`text-xs font-medium ${errors > 0 ? 'text-red-600' : 'text-slate-400'}`}>Erreur{errors > 1 ? 's' : ''} à corriger</p>
+        </div>
+      </div>
+      <div className={`rounded-xl p-4 border flex items-center gap-3 ${openAlertes > 0 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${openAlertes > 0 ? 'bg-amber-100' : 'bg-slate-100'}`}>
+          <AlertTriangle size={16} className={openAlertes > 0 ? 'text-amber-600' : 'text-slate-400'} />
+        </div>
+        <div>
+          <p className={`text-2xl font-bold ${openAlertes > 0 ? 'text-amber-700' : 'text-slate-400'}`}>{openAlertes}</p>
+          <p className={`text-xs font-medium ${openAlertes > 0 ? 'text-amber-600' : 'text-slate-400'}`}>Alerte{openAlertes > 1 ? 's' : ''} ouverte{openAlertes > 1 ? 's' : ''}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Report Card ─────────────────────────────────────────────────────────────
+
+function ReportCard({ record, isAlert }) {
   const [expanded, setExpanded] = useState(false)
   const fields = record.fields || {}
 
-  const title  = fields['Task Name / Reference'] || fields['Name'] || fields['Alert Name'] || record.id
-  const type   = fields['Task Type'] || fields['Type'] || fields['Alert Type'] || ''
-  const status = fields['Status'] || fields['Alert Status'] || ''
-  const logs   = fields['Execution Logs'] || fields['Sync Logs'] || fields['Recommendation'] || ''
-  const date   = fields['Created'] || record.createdTime || ''
-  const dossier = Array.isArray(fields['Dossier']) ? fields['Dossier'][0] : (fields['Dossier'] || '')
+  const title    = fields['Task Name / Reference'] || fields['Name'] || fields['Alert Name'] || record.id
+  const type     = fields['Task Type'] || fields['Type'] || fields['Alert Type'] || ''
+  const status   = fields['Status'] || fields['Alert Status'] || ''
+  const logs     = fields['Execution Logs'] || fields['Sync Logs'] || fields['Recommendation'] || ''
+  const date     = fields['Created'] || record.createdTime || ''
+  const dossier  = Array.isArray(fields['Dossier']) ? fields['Dossier'][0] : (fields['Dossier'] || '')
+  const severity = fields['Severity'] || fields['Alert Severity'] || ''
+
+  const st   = getTaskStatus(status)
+  const Icon = st.icon
+
+  const severityBadge = {
+    haute: 'bg-red-100 text-red-700',
+    élevé: 'bg-red-100 text-red-700',
+    moyenne: 'bg-amber-100 text-amber-700',
+    basse: 'bg-blue-100 text-blue-700',
+    faible: 'bg-blue-100 text-blue-700',
+  }
+
+  const handleDownload = () => {
+    if (!logs) return
+    const blob = new Blob([logs], { type: 'text/markdown;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `rapport-${title.slice(0, 30).replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
-    <div className="card">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-brand-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <FileText size={16} className="text-brand-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-slate-900 truncate">{title}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              {type && <span className="badge">{type}</span>}
-              {dossier && <span className="badge text-brand-700 bg-brand-50 border border-brand-200">{dossier}</span>}
-              {statusBadge(status)}
-            </div>
-            {date && <p className="text-xs text-slate-400 mt-1">{formatDate(date)}</p>}
-          </div>
+    <div className={`bg-white rounded-xl border transition-all hover:shadow-sm ${expanded ? 'border-brand-200 shadow-sm' : 'border-slate-100'}`}>
+      <div className="flex items-start gap-3 p-4">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${isAlert ? 'bg-amber-50' : 'bg-brand-50'}`}>
+          {isAlert
+            ? <AlertTriangle size={15} className="text-amber-600" />
+            : <FileText size={15} className="text-brand-600" />
+          }
         </div>
-        {logs && (
-          <button onClick={() => setExpanded(!expanded)} className="btn-ghost p-1.5 flex-shrink-0">
-            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <p className="font-semibold text-slate-900 text-sm truncate">{typeLabels[type] || title}</p>
+            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${st.color}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+              {st.label}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {type && (
+              <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">{type.replace(/_/g, ' ')}</span>
+            )}
+            {dossier && (
+              <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-md">{dossier}</span>
+            )}
+            {severity && severityBadge[severity.toLowerCase()] && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${severityBadge[severity.toLowerCase()]}`}>
+                Sévérité {severity}
+              </span>
+            )}
+          </div>
+
+          {date && <p className="text-xs text-slate-400 mt-1.5">{formatDate(date)}</p>}
+        </div>
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {logs && (
+            <button
+              onClick={handleDownload}
+              title="Télécharger le rapport"
+              className="p-1.5 text-slate-300 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+            >
+              <Download size={14} />
+            </button>
+          )}
+          {logs && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="p-1.5 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+          )}
+        </div>
       </div>
 
       {expanded && logs && (
-        <div className="mt-4 pt-4 border-t border-slate-100">
-          <pre className="text-sm text-slate-700 whitespace-pre-wrap break-words font-sans leading-relaxed max-h-96 overflow-auto bg-slate-50 rounded-lg p-3">
+        <div className="px-4 pb-4 border-t border-slate-50 pt-3">
+          <pre className="text-xs text-slate-700 whitespace-pre-wrap break-words font-mono leading-relaxed max-h-80 overflow-auto bg-slate-50 rounded-xl p-4">
             {logs}
           </pre>
         </div>
@@ -103,64 +218,92 @@ export default function RapportsPage() {
 
   useEffect(() => { load() }, [])
 
+  const openAlertes = alerteRecords.filter(a => {
+    const s = (a.fields?.['Alert Status'] || '').toLowerCase()
+    return !s.includes('résolu') && !s.includes('resolved')
+  })
   const current = tab === 'queue' ? queueRecords : alerteRecords
-  const total   = queueRecords.length + alerteRecords.length
 
   return (
     <div className="flex-1 overflow-y-auto">
       <Header
         title="Rapports & Activité"
-        subtitle={loading ? 'Chargement…' : `${total} entrée${total > 1 ? 's' : ''} au total`}
+        subtitle={loading ? 'Chargement…' : `${queueRecords.length} tâche${queueRecords.length > 1 ? 's' : ''} · ${alerteRecords.length} alerte${alerteRecords.length > 1 ? 's' : ''}`}
         actions={
-          <button onClick={load} disabled={loading} className="btn-ghost flex items-center gap-2 text-sm">
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+          <button onClick={load} disabled={loading} className="btn-secondary flex items-center gap-2 text-sm">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Actualiser
           </button>
         }
       />
 
-      <div className="p-6 space-y-4">
-        {/* Onglets */}
-        <div className="flex bg-slate-100 rounded-xl p-1 max-w-sm">
+      <div className="p-6">
+        {!loading && <SummaryBanner queue={queueRecords} alertes={alerteRecords} />}
+
+        {/* Tabs */}
+        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 mb-5 w-fit">
           <button
             onClick={() => setTab('queue')}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'queue' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'queue' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            Queue travail ({queueRecords.length})
+            <Zap size={13} />
+            Tâches
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${tab === 'queue' ? 'bg-brand-100 text-brand-700' : 'bg-slate-200 text-slate-500'}`}>
+              {queueRecords.length}
+            </span>
           </button>
           <button
             onClick={() => setTab('alertes')}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'alertes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'alertes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            Alertes ({alerteRecords.length})
+            <AlertTriangle size={13} />
+            Alertes
+            {openAlertes.length > 0 && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">
+                {openAlertes.length}
+              </span>
+            )}
           </button>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
-            <p className="font-semibold mb-1">Impossible de charger les données</p>
-            <p>{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm mb-4">
+            <p className="font-semibold text-red-800 mb-1">Impossible de charger les données</p>
+            <p className="text-red-600">{error}</p>
           </div>
         )}
 
         {loading && (
-          <div className="flex items-center gap-3 text-slate-500">
+          <div className="flex items-center gap-3 text-slate-400 py-6">
             <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-            Connexion à Airtable…
+            <span className="text-sm">Connexion à Airtable…</span>
           </div>
         )}
 
         {!loading && current.length === 0 && !error && (
-          <div className="text-center py-16">
-            <Clock size={40} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">Aucune entrée pour l'instant</p>
-            <p className="text-slate-400 text-sm mt-1">Les résultats apparaîtront ici après chaque run ComptaMind.</p>
+          <div className="card text-center py-20">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <FileText size={28} className="text-slate-300" />
+            </div>
+            <p className="text-slate-600 font-semibold mb-1">
+              {tab === 'queue' ? 'Aucune tâche exécutée' : 'Aucune alerte détectée'}
+            </p>
+            <p className="text-slate-400 text-sm max-w-xs mx-auto">
+              {tab === 'queue'
+                ? 'Les tâches ComptaMind apparaîtront ici après chaque exécution.'
+                : 'ComptaMind signalera ici les anomalies détectées dans vos dossiers.'
+              }
+            </p>
           </div>
         )}
 
-        <div className="space-y-3">
-          {current.map(r => <ReportCard key={r.id} record={r} />)}
-        </div>
+        {!loading && current.length > 0 && (
+          <div className="space-y-2">
+            {current.map(r => (
+              <ReportCard key={r.id} record={r} isAlert={tab === 'alertes'} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

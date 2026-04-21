@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Users, Bot, CheckCircle, AlertTriangle, Clock, ArrowRight,
-  Zap, Calendar, FileText, ChevronRight, Star, RefreshCw, Building2
+  AlertTriangle, CheckCircle, Clock, ArrowRight,
+  ChevronRight, RefreshCw, Building2, Zap, Bot,
+  TrendingUp, Play, Eye, Sparkles, CircleDot
 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { listRecords } from '../lib/airtable'
@@ -11,23 +12,38 @@ import {
   FLD_CLIENT_NAME, FLD_CLIENT_STATUS, FLD_CLIENT_PROFIL, FLD_CLIENT_LAST_ACTION
 } from '../lib/airtable-schema'
 import { EXCLUDED_CLIENT_IDS } from '../hooks/useAirtableClients'
+import { useAppStore } from '../store/useAppStore'
 
 const cabinetName = import.meta.env.VITE_CABINET_NAME || 'votre cabinet'
 
-function StatCard({ icon: Icon, label, value, sub, color }) {
+// ─── Priority Action Card ─────────────────────────────────────────────────────
+
+function PriorityCard({ level, icon: Icon, iconColor, bg, border, title, description, count, cta, onClick }) {
   return (
-    <div className="card p-5 flex items-start justify-between">
-      <div>
-        <p className="text-sm font-medium text-slate-500 mb-1">{label}</p>
-        <p className="text-3xl font-bold text-slate-900">{value}</p>
-        {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+    <div
+      onClick={onClick}
+      className={`relative rounded-2xl border p-5 cursor-pointer group transition-all hover:shadow-md ${bg} ${border}`}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconColor}`}>
+          <Icon size={18} />
+        </div>
+        {count > 0 && (
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${level === 'urgent' ? 'bg-red-100 text-red-700' : level === 'warning' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+            {count}
+          </span>
+        )}
       </div>
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
-        <Icon size={20} />
+      <p className="font-semibold text-slate-900 text-sm mb-1">{title}</p>
+      <p className="text-xs text-slate-500 leading-relaxed mb-4">{description}</p>
+      <div className={`flex items-center gap-1.5 text-xs font-semibold transition-all group-hover:gap-2.5 ${level === 'urgent' ? 'text-red-600' : level === 'warning' ? 'text-amber-600' : 'text-blue-600'}`}>
+        {cta} <ArrowRight size={12} />
       </div>
     </div>
   )
 }
+
+// ─── Client Card ─────────────────────────────────────────────────────────────
 
 function ClientCard({ record, onClick }) {
   const fields = record.fields || {}
@@ -36,65 +52,77 @@ function ClientCard({ record, onClick }) {
   const profil = fields[FLD_CLIENT_PROFIL] || fields['Profil comptable'] || ''
   const lastAction = fields[FLD_CLIENT_LAST_ACTION] || fields['Last ComptaMind Action'] || ''
   const initials = name.slice(0, 2).toUpperCase()
-
   const isActif = !status.toLowerCase().includes('inactif') && !status.toLowerCase().includes('archive')
 
   return (
     <div
       onClick={onClick}
-      className="p-4 rounded-xl border border-slate-100 hover:border-brand-200 hover:shadow-sm cursor-pointer transition-all"
+      className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 hover:border-brand-200 hover:bg-brand-50/30 cursor-pointer transition-all group"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-9 h-9 rounded-xl bg-brand-100 flex items-center justify-center">
-          <span className="text-brand-700 font-bold text-sm">{initials}</span>
-        </div>
-        <span className={`badge text-xs ${isActif ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-          {isActif ? 'Actif' : status || 'Inactif'}
-        </span>
+      <div className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0">
+        <span className="text-white font-bold text-xs">{initials}</span>
       </div>
-      <div className="font-semibold text-sm text-slate-900 truncate mb-1">{name}</div>
-      <div className="text-xs text-slate-400 mb-2">{profil}</div>
-      {lastAction && <p className="text-xs text-slate-400 truncate">Dernière action : {lastAction}</p>}
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm text-slate-900 truncate">{name}</p>
+        {profil && <p className="text-xs text-slate-400 truncate">{profil}</p>}
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className={`w-2 h-2 rounded-full ${isActif ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+        <ChevronRight size={14} className="text-slate-300 group-hover:text-brand-500 transition-colors" />
+      </div>
     </div>
   )
 }
 
-function QueueItem({ record }) {
+// ─── Activity Item ────────────────────────────────────────────────────────────
+
+function ActivityItem({ record }) {
   const fields = record.fields || {}
   const name = fields['Task Name / Reference'] || fields['Name'] || record.id
   const type = fields['Task Type'] || ''
-  const status = fields['Status'] || ''
+  const status = (fields['Status'] || '').toLowerCase()
   const date = record.createdTime || ''
 
-  const typeIcons = {
-    rapport: '📊', revision_balance: '🔍', saisie_factures: '📝',
-    relance_clients: '📬', revision_fournisseur: '🔍',
+  const isDone = status.includes('done') || status.includes('terminé') || status.includes('success')
+  const isError = status.includes('error') || status.includes('erreur')
+  const isProgress = status.includes('progress') || status.includes('cours')
+
+  const typeLabel = {
+    revision_balance: 'Révision balance',
+    saisie_factures: 'Saisie factures',
+    revision_fournisseur: 'Révision fournisseur',
+    revision_client: 'Révision client',
+    relance_clients: 'Relances clients',
+    rapport: 'Rapport',
+    rapprochement_bancaire: 'Rapprochement',
   }
-  const icon = typeIcons[type] || '⚙️'
 
   return (
-    <div className="flex items-start gap-4 py-3 border-b border-slate-50 last:border-0">
-      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-base flex-shrink-0 mt-0.5">
-        {icon}
+    <div className="flex items-center gap-3 py-2.5 border-b border-slate-50 last:border-0">
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-emerald-50' : isError ? 'bg-red-50' : 'bg-slate-100'}`}>
+        {isDone
+          ? <CheckCircle size={13} className="text-emerald-500" />
+          : isError
+          ? <AlertTriangle size={13} className="text-red-500" />
+          : <CircleDot size={13} className="text-slate-400" />
+        }
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-700 truncate">{name}</p>
-        {type && <span className="text-xs text-slate-400">{type.replace(/_/g, ' ')}</span>}
+        <p className="text-sm font-medium text-slate-700 truncate">{typeLabel[type] || name}</p>
+        {date && <p className="text-xs text-slate-400">{new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>}
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {date && <span className="text-xs text-slate-400">{new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>}
-        {status.toLowerCase().includes('done') || status.toLowerCase().includes('terminé')
-          ? <CheckCircle size={14} className="text-emerald-500" />
-          : status.toLowerCase().includes('error')
-          ? <AlertTriangle size={14} className="text-red-500" />
-          : <Clock size={14} className="text-slate-300" />}
-      </div>
+      {isDone && <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">Terminé</span>}
+      {isError && <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded-full flex-shrink-0">Erreur</span>}
+      {isProgress && <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">En cours</span>}
     </div>
   )
 }
 
+// ─── Page principale ──────────────────────────────────────────────────────────
+
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const { pendingApprovals } = useAppStore()
   const [clients, setClients] = useState([])
   const [queue, setQueue] = useState([])
   const [alertes, setAlertes] = useState([])
@@ -111,18 +139,29 @@ export default function DashboardPage() {
       listRecords(TBL_ALERTES).catch(() => []),
     ]).then(([c, q, a]) => {
       setClients(c.filter(r => !EXCLUDED_CLIENT_IDS.has(r.id)))
-      setQueue(q.slice(0, 5))
+      setQueue(q.slice(0, 8))
       setAlertes(a)
     }).finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
 
-  const recentClients = clients.slice(0, 4)
-  const alertCount = alertes.filter(a => {
+  // Derived insights from real data
+  const openAlertes = alertes.filter(a => {
     const s = (a.fields?.['Alert Status'] || '').toLowerCase()
     return !s.includes('résolu') && !s.includes('resolved')
-  }).length
+  })
+  const errorTasks = queue.filter(r => {
+    const s = (r.fields?.['Status'] || '').toLowerCase()
+    return s.includes('error') || s.includes('erreur')
+  })
+  const doneTasks = queue.filter(r => {
+    const s = (r.fields?.['Status'] || '').toLowerCase()
+    return s.includes('done') || s.includes('terminé') || s.includes('success')
+  })
+  const recentClients = clients.slice(0, 5)
+
+  const allGood = openAlertes.length === 0 && errorTasks.length === 0 && pendingApprovals.length === 0
 
   return (
     <div>
@@ -130,164 +169,223 @@ export default function DashboardPage() {
         title={`${greeting} 👋`}
         subtitle={`Tableau de bord — ${cabinetName}`}
         actions={
-          <button onClick={() => navigate('/comptamind')} className="btn-primary flex items-center gap-2">
-            <Bot size={16} />
-            Lancer ComptaMind
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={load} className="btn-ghost text-sm flex items-center gap-1.5">
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+              Actualiser
+            </button>
+            <button onClick={() => navigate('/comptamind')} className="btn-primary flex items-center gap-2">
+              <Bot size={15} />
+              Lancer ComptaMind IA
+            </button>
+          </div>
         }
       />
 
-      <div className="p-8 space-y-8">
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            icon={Users} label="Dossiers actifs" value={loading ? '…' : clients.length}
-            sub="Dans Airtable"
-            color="bg-brand-100 text-brand-600"
-          />
-          <StatCard
-            icon={FileText} label="Tâches récentes" value={loading ? '…' : queue.length}
-            sub="Queue ComptaMind"
-            color="bg-emerald-100 text-emerald-600"
-          />
-          <StatCard
-            icon={AlertTriangle} label="Alertes actives" value={loading ? '…' : alertCount}
-            sub="Incohérences détectées"
-            color="bg-amber-100 text-amber-600"
-          />
-          <StatCard
-            icon={CheckCircle} label="Connexion VPS" value="OK"
-            sub="Backend opérationnel"
-            color="bg-violet-100 text-violet-600"
-          />
+      <div className="p-8 space-y-8 max-w-7xl">
+
+        {/* ── AI Morning Briefing ── */}
+        <div className="rounded-2xl p-5 flex items-start gap-4" style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #faf5ff 100%)', border: '1px solid #e0e7ff' }}>
+          <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0">
+            <Sparkles size={18} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-slate-900 text-sm mb-1">
+              {loading ? 'Analyse en cours…' : allGood
+                ? `Tout est en ordre — ${clients.length} dossier${clients.length > 1 ? 's' : ''} actif${clients.length > 1 ? 's' : ''}, aucune anomalie détectée.`
+                : `${openAlertes.length + errorTasks.length + pendingApprovals.length} point${openAlertes.length + errorTasks.length + pendingApprovals.length > 1 ? 's' : ''} nécessite${openAlertes.length + errorTasks.length + pendingApprovals.length > 1 ? 'nt' : ''} votre attention aujourd'hui.`
+              }
+            </p>
+            <p className="text-xs text-slate-500">
+              {doneTasks.length > 0 ? `${doneTasks.length} tâche${doneTasks.length > 1 ? 's' : ''} ComptaMind terminée${doneTasks.length > 1 ? 's' : ''} · ` : ''}
+              {clients.length} dossier{clients.length > 1 ? 's' : ''} dans Airtable
+            </p>
+          </div>
+          <button onClick={() => navigate('/comptamind')} className="flex-shrink-0 text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+            Ouvrir l'IA <ArrowRight size={12} />
+          </button>
         </div>
 
-        {/* Alertes Airtable */}
-        {alertCount > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AlertTriangle size={20} className="text-amber-600 flex-shrink-0" />
+        {/* ── Priority Actions ── */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Priorités</h2>
+            {allGood && !loading && (
+              <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
+                <CheckCircle size={13} /> Aucune action requise
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <PriorityCard
+              level={openAlertes.length > 0 ? 'urgent' : 'ok'}
+              icon={openAlertes.length > 0 ? AlertTriangle : CheckCircle}
+              iconColor={openAlertes.length > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}
+              bg={openAlertes.length > 0 ? 'bg-red-50/60' : 'bg-white'}
+              border={openAlertes.length > 0 ? 'border-red-200' : 'border-slate-100'}
+              title={openAlertes.length > 0 ? `${openAlertes.length} anomalie${openAlertes.length > 1 ? 's' : ''} détectée${openAlertes.length > 1 ? 's' : ''}` : 'Aucune anomalie'}
+              description={openAlertes.length > 0 ? 'Des incohérences ont été détectées dans vos dossiers. Examinez et corrigez.' : 'Tous vos dossiers sont conformes. Aucune incohérence détectée.'}
+              count={openAlertes.length}
+              cta={openAlertes.length > 0 ? 'Examiner les anomalies' : 'Voir les rapports'}
+              onClick={() => navigate('/rapports')}
+            />
+            <PriorityCard
+              level={errorTasks.length > 0 ? 'warning' : 'ok'}
+              icon={errorTasks.length > 0 ? Clock : CheckCircle}
+              iconColor={errorTasks.length > 0 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}
+              bg={errorTasks.length > 0 ? 'bg-amber-50/60' : 'bg-white'}
+              border={errorTasks.length > 0 ? 'border-amber-200' : 'border-slate-100'}
+              title={errorTasks.length > 0 ? `${errorTasks.length} tâche${errorTasks.length > 1 ? 's' : ''} en erreur` : 'Queue sans erreur'}
+              description={errorTasks.length > 0 ? 'Des tâches ComptaMind ont échoué et doivent être relancées.' : 'Toutes les tâches récentes se sont exécutées correctement.'}
+              count={errorTasks.length}
+              cta={errorTasks.length > 0 ? 'Voir les erreurs' : 'Voir l\'activité'}
+              onClick={() => navigate('/rapports')}
+            />
+            <PriorityCard
+              level={pendingApprovals.length > 0 ? 'warning' : 'ok'}
+              icon={pendingApprovals.length > 0 ? Zap : CheckCircle}
+              iconColor={pendingApprovals.length > 0 ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}
+              bg={pendingApprovals.length > 0 ? 'bg-blue-50/60' : 'bg-white'}
+              border={pendingApprovals.length > 0 ? 'border-blue-200' : 'border-slate-100'}
+              title={pendingApprovals.length > 0 ? `${pendingApprovals.length} approbation${pendingApprovals.length > 1 ? 's' : ''} requise${pendingApprovals.length > 1 ? 's' : ''}` : 'Aucune approbation en attente'}
+              description={pendingApprovals.length > 0 ? 'ComptaMind attend votre feu vert avant d\'agir sur ces dossiers.' : 'ComptaMind travaille de façon autonome, aucune décision requise.'}
+              count={pendingApprovals.length}
+              cta={pendingApprovals.length > 0 ? 'Approuver / Refuser' : 'Gérer l\'autonomie'}
+              onClick={() => navigate('/autonomie')}
+            />
+          </div>
+        </div>
+
+        {/* ── Stats ── */}
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            {
+              label: 'Dossiers actifs',
+              value: loading ? '…' : clients.length,
+              sub: 'Connectés à Airtable',
+              icon: Building2,
+              color: 'text-brand-600 bg-brand-50',
+            },
+            {
+              label: 'Tâches exécutées',
+              value: loading ? '…' : queue.length,
+              sub: 'Depuis le début',
+              icon: CheckCircle,
+              color: 'text-emerald-600 bg-emerald-50',
+            },
+            {
+              label: 'Anomalies ouvertes',
+              value: loading ? '…' : openAlertes.length,
+              sub: openAlertes.length > 0 ? 'À traiter' : 'Tout est bon',
+              icon: AlertTriangle,
+              color: openAlertes.length > 0 ? 'text-red-600 bg-red-50' : 'text-slate-400 bg-slate-50',
+            },
+            {
+              label: 'IA ComptaMind',
+              value: 'Active',
+              sub: 'VPS + Airtable connectés',
+              icon: Bot,
+              color: 'text-violet-600 bg-violet-50',
+            },
+          ].map((s, i) => (
+            <div key={i} className="card p-4 flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.color}`}>
+                <s.icon size={18} />
+              </div>
               <div>
-                <span className="text-amber-800 font-semibold text-sm">
-                  {alertCount} alerte{alertCount > 1 ? 's' : ''} détectée{alertCount > 1 ? 's' : ''} dans Airtable
-                </span>
-                <p className="text-amber-700 text-xs mt-0.5">Consultez la page Rapports pour les détails</p>
+                <p className="text-2xl font-bold text-slate-900 leading-none">{s.value}</p>
+                <p className="text-xs font-medium text-slate-600 mt-0.5">{s.label}</p>
+                <p className="text-xs text-slate-400">{s.sub}</p>
               </div>
             </div>
-            <button onClick={() => navigate('/rapports')} className="btn-ghost text-amber-700 text-sm font-medium flex items-center gap-1">
-              Voir <ArrowRight size={14} />
-            </button>
-          </div>
-        )}
+          ))}
+        </div>
 
-        {/* Grille principale */}
-        <div className="grid grid-cols-3 gap-6">
+        {/* ── Main Grid ── */}
+        <div className="grid grid-cols-5 gap-6">
+
           {/* Activité récente */}
-          <div className="col-span-2 card p-6">
+          <div className="col-span-3 card p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Activité ComptaMind</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Dernières tâches de la queue</p>
+                <h2 className="text-sm font-bold text-slate-900">Activité ComptaMind</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Dernières tâches exécutées</p>
               </div>
-              <button onClick={load} className="btn-ghost text-sm flex items-center gap-1">
-                <RefreshCw size={14} />
-                Actualiser
+              <button onClick={() => navigate('/rapports')} className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                Voir tout <ChevronRight size={12} />
               </button>
             </div>
 
             {loading && (
               <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
                 <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
-                Chargement Airtable…
+                Chargement…
               </div>
             )}
 
             {!loading && queue.length === 0 && (
-              <p className="text-slate-400 text-sm py-4">Aucune tâche dans la queue pour l'instant.</p>
+              <div className="text-center py-10">
+                <Bot size={28} className="text-slate-200 mx-auto mb-3" />
+                <p className="text-slate-400 text-sm font-medium">Aucune tâche exécutée</p>
+                <p className="text-slate-400 text-xs mt-1 mb-4">Lancez votre première tâche depuis ComptaMind IA</p>
+                <button onClick={() => navigate('/comptamind')} className="btn-primary text-xs py-2 mx-auto">
+                  <Play size={13} /> Démarrer
+                </button>
+              </div>
             )}
 
-            {!loading && queue.map(r => <QueueItem key={r.id} record={r} />)}
-
-            <button onClick={() => navigate('/rapports')} className="mt-4 w-full py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50 rounded-lg transition-colors flex items-center justify-center gap-1">
-              Voir tous les rapports <ChevronRight size={14} />
-            </button>
+            {!loading && queue.map(r => <ActivityItem key={r.id} record={r} />)}
           </div>
 
-          {/* Panneau droit */}
-          <div className="space-y-4">
-            {/* Actions rapides */}
-            <div className="card p-5">
-              <h3 className="text-sm font-bold text-slate-900 mb-3">Actions rapides</h3>
-              <div className="space-y-2">
-                {[
-                  { label: 'Saisie factures', icon: '📝', desc: 'Traitement des À traiter', action: () => navigate('/comptamind') },
-                  { label: 'Révision balance', icon: '🔍', desc: 'Contrôler les comptes', action: () => navigate('/comptamind') },
-                  { label: 'Relances clients', icon: '📬', desc: 'Balance âgée en retard', action: () => navigate('/comptamind') },
-                ].map((item, i) => (
-                  <button key={i} onClick={item.action} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors text-left group">
-                    <span className="text-lg">{item.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-slate-700">{item.label}</div>
-                      <div className="text-xs text-slate-400">{item.desc}</div>
-                    </div>
-                    <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-500" />
-                  </button>
-                ))}
+          {/* Dossiers */}
+          <div className="col-span-2 card p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Dossiers</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {loading ? 'Chargement…' : `${clients.length} dossier${clients.length > 1 ? 's' : ''}`}
+                </p>
               </div>
+              <button onClick={() => navigate('/clients')} className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                Tous <ChevronRight size={12} />
+              </button>
             </div>
 
-            {/* Statut ComptaMind */}
-            <div className="card p-5 gradient-brand text-white">
-              <div className="flex items-center gap-2 mb-2">
-                <Bot size={18} />
-                <h3 className="text-sm font-bold">ComptaMind</h3>
-                <div className="ml-auto w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+            {loading && (
+              <div className="flex items-center gap-2 text-slate-400 text-sm">
+                <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
+                Connexion Airtable…
               </div>
-              <p className="text-indigo-200 text-xs mb-3">
-                Backend VPS actif · Airtable connecté · Pennylane intégré
-              </p>
-              <div className="flex items-center gap-1 text-indigo-200 text-xs">
-                <Star size={12} className="fill-current text-yellow-300" />
-                <span>Opérationnel</span>
+            )}
+
+            {!loading && clients.length === 0 && (
+              <div className="text-center py-8">
+                <Building2 size={28} className="text-slate-200 mx-auto mb-2" />
+                <p className="text-slate-400 text-sm">Aucun dossier</p>
               </div>
-            </div>
-          </div>
-        </div>
+            )}
 
-        {/* Aperçu dossiers Airtable */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Dossiers</h2>
-              <p className="text-xs text-slate-500 mt-0.5">{loading ? 'Chargement…' : `${clients.length} dossier${clients.length > 1 ? 's' : ''} dans Airtable`}</p>
-            </div>
-            <button onClick={() => navigate('/clients')} className="btn-secondary text-sm flex items-center gap-1">
-              Tous les dossiers <ArrowRight size={14} />
-            </button>
-          </div>
-
-          {loading && (
-            <div className="flex items-center gap-2 text-slate-400 text-sm">
-              <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
-              Connexion Airtable…
-            </div>
-          )}
-
-          {!loading && clients.length === 0 && (
-            <div className="text-center py-8">
-              <Building2 size={32} className="text-slate-300 mx-auto mb-2" />
-              <p className="text-slate-400 text-sm">Aucun dossier dans Airtable</p>
-              <p className="text-slate-400 text-xs mt-1">Vérifiez VITE_AIRTABLE_TOKEN dans Netlify</p>
-            </div>
-          )}
-
-          {!loading && recentClients.length > 0 && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
               {recentClients.map(r => (
                 <ClientCard key={r.id} record={r} onClick={() => navigate('/clients')} />
               ))}
             </div>
-          )}
+
+            {clients.length > 5 && (
+              <button onClick={() => navigate('/clients')} className="w-full mt-3 py-2 text-xs font-semibold text-slate-500 hover:text-brand-600 rounded-lg hover:bg-brand-50 transition-colors flex items-center justify-center gap-1">
+                +{clients.length - 5} autres dossiers <ArrowRight size={11} />
+              </button>
+            )}
+
+            {!loading && (
+              <button
+                onClick={() => navigate('/comptamind')}
+                className="w-full mt-3 py-2.5 rounded-xl text-xs font-semibold gradient-brand text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <Bot size={13} /> Lancer une tâche IA
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
