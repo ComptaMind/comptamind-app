@@ -13,6 +13,7 @@ const steps = [
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
+  const [finishing, setFinishing] = useState(false)
   const [data, setData] = useState({
     cabinet: {},
     preferences: { saisieAuto: true, revisionAuto: true, relancesAuto: false },
@@ -23,6 +24,7 @@ export default function OnboardingPage() {
   const navigate = useNavigate()
 
   const handleFinish = async () => {
+    setFinishing(true)
     await completeOnboarding(data.cabinet)
     if (data.premierClient.nom) {
       addClient(data.premierClient)
@@ -291,9 +293,18 @@ export default function OnboardingPage() {
                   </div>
                 ))}
               </div>
-              <button onClick={handleFinish} className="btn-primary w-full py-3 text-base">
-                <Sparkles size={18} />
-                Accéder à mon tableau de bord
+              <button onClick={handleFinish} disabled={finishing} className="btn-primary w-full py-3 text-base">
+                {finishing ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Chargement...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <Sparkles size={18} />
+                    Accéder à mon tableau de bord
+                  </div>
+                )}
               </button>
             </div>
           )}

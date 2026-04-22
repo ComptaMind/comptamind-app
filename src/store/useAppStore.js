@@ -187,21 +187,32 @@ export const useAppStore = create((set, get) => ({
 
   completeOnboarding: async (cabinetData) => {
     const { supabaseUser } = get()
-    if (!supabaseUser) return
-    await supabase.from('profiles').upsert({
-      id: supabaseUser.id,
-      cabinet_nom: cabinetData.nom,
-      siret: cabinetData.siret || null,
-      tel: cabinetData.tel || null,
-      adresse: cabinetData.adresse || null,
-      taille: cabinetData.taille || null,
-      onboarding_complete: true,
-    })
+    // Met à jour le store immédiatement pour que la navigation fonctionne
     set({
       onboardingComplete: true,
       cabinet: cabinetData,
-      user: { prenom: cabinetData.nom, nom: '', role: 'Expert-comptable', email: supabaseUser.email },
+      user: {
+        prenom: cabinetData.nom || 'Cabinet',
+        nom: '',
+        role: 'Expert-comptable',
+        email: supabaseUser?.email || '',
+      },
     })
+    // Sauvegarde en Supabase (best-effort)
+    if (!supabaseUser) return
+    try {
+      await supabase.from('profiles').upsert({
+        id: supabaseUser.id,
+        cabinet_nom: cabinetData.nom || null,
+        siret: cabinetData.siret || null,
+        tel: cabinetData.tel || null,
+        adresse: cabinetData.adresse || null,
+        taille: cabinetData.taille || null,
+        onboarding_complete: true,
+      })
+    } catch (e) {
+      console.error('Erreur sauvegarde profil:', e)
+    }
   },
 
   savePreferences: async (preferences) => {
