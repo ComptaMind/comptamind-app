@@ -22,8 +22,8 @@ export default function OnboardingPage() {
   const { completeOnboarding, addClient } = useAppStore()
   const navigate = useNavigate()
 
-  const handleFinish = () => {
-    completeOnboarding(data.cabinet)
+  const handleFinish = async () => {
+    await completeOnboarding(data.cabinet)
     if (data.premierClient.nom) {
       addClient(data.premierClient)
     }

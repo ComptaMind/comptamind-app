@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { mockClients, mockActivities, mockMemories } from '../data/mockData'
+import { supabase } from '../lib/supabase'
 
 const defaultPermissions = {
   saisie_mensuelle: 'autonome',
@@ -109,15 +110,14 @@ const mockAutonomousTasks = [
   },
 ]
 
-const _storedAuth = localStorage.getItem('comptamind_auth') === 'ok'
-const _cabinetName = import.meta.env.VITE_CABINET_NAME || 'Mon Cabinet'
-
 export const useAppStore = create((set, get) => ({
-  // Auth — initialisé depuis localStorage pour survivre au refresh
-  isAuthenticated: _storedAuth,
-  user: _storedAuth ? { prenom: 'Cabinet', nom: _cabinetName, role: 'Expert-comptable' } : null,
-  cabinet: _storedAuth ? { nom: _cabinetName } : null,
-  onboardingComplete: true, // pas d'onboarding en v1
+  // Auth — géré par Supabase
+  isAuthenticated: false,
+  supabaseUser: null,
+  user: null,
+  cabinet: null,
+  onboardingComplete: false,
+  authLoading: true, // true pendant l'init pour éviter le flash
 
   // Clients
   clients: mockClients,
@@ -146,20 +146,74 @@ export const useAppStore = create((set, get) => ({
   // Pending approvals
   pendingApprovals: mockPendingApprovals,
 
-  // Actions auth
-  login: () => {
-    localStorage.setItem('comptamind_auth', 'ok')
-    const name = import.meta.env.VITE_CABINET_NAME || 'Mon Cabinet'
-    set({
-      isAuthenticated: true,
-      user: { prenom: 'Cabinet', nom: name, role: 'Expert-comptable' },
-      cabinet: { nom: name },
-      onboardingComplete: true,
+  // Actions auth Supabase
+  initAuth: async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user) {
+      await get().loadProfile(session.user)
+    } else {
+      set({ authLoading: false })
+    }
+    // Écoute les changements de session (login, logout, refresh token)
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        await get().loadProfile(session.user)
+      } else {
+        set({ isAuthenticated: false, supabaseUser: null, user: null, cabinet: null, onboardingComplete: false, authLoading: false })
+      }
     })
   },
-  logout: () => {
-    localStorage.removeItem('comptamind_auth')
-    set({ isAuthenticated: false, user: null, cabinet: null })
+
+  loadProfile: async (supabaseUser) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', supabaseUser.id)
+      .single()
+    set({
+      isAuthenticated: true,
+      supabaseUser,
+      authLoading: false,
+      onboardingComplete: profile?.onboarding_complete || false,
+      cabinet: profile ? { nom: profile.cabinet_nom, siret: profile.siret, tel: profile.tel, adresse: profile.adresse, taille: profile.taille } : null,
+      user: { prenom: profile?.cabinet_nom || supabaseUser.email, nom: '', role: 'Expert-comptable', email: supabaseUser.email },
+    })
+  },
+
+  logout: async () => {
+    await supabase.auth.signOut()
+    set({ isAuthenticated: false, supabaseUser: null, user: null, cabinet: null, onboardingComplete: false })
+  },
+
+  completeOnboarding: async (cabinetData) => {
+    const { supabaseUser } = get()
+    if (!supabaseUser) return
+    await supabase.from('profiles').upsert({
+      id: supabaseUser.id,
+      cabinet_nom: cabinetData.nom,
+      siret: cabinetData.siret || null,
+      tel: cabinetData.tel || null,
+      adresse: cabinetData.adresse || null,
+      taille: cabinetData.taille || null,
+      onboarding_complete: true,
+    })
+    set({
+      onboardingComplete: true,
+      cabinet: cabinetData,
+      user: { prenom: cabinetData.nom, nom: '', role: 'Expert-comptable', email: supabaseUser.email },
+    })
+  },
+
+  savePreferences: async (preferences) => {
+    const { supabaseUser } = get()
+    if (!supabaseUser) return
+    await supabase.from('profiles').update({ preferences }).eq('id', supabaseUser.id)
+  },
+
+  savePennylaneToken: async (token) => {
+    const { supabaseUser } = get()
+    if (!supabaseUser) return
+    await supabase.from('profiles').update({ pennylane_token: token }).eq('id', supabaseUser.id)
   },
 
   setActiveClient: (clientId) => set({ activeClientId: clientId }),
