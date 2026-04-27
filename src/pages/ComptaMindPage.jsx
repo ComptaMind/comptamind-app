@@ -642,37 +642,54 @@ export default function ComptaMindPage() {
     setRunBlock(null)
 
     const isClass4 = tache === 'class4'
+    const launchTime = Date.now()
 
     try {
       const res = await callVPS({ client: clientName, tache: vtache, exercice: clientExercice, fournisseur })
-      setTimeout(async () => {
-        setRunningTask(null)
+      setRunningTask(null)
 
-        if (isClass4) {
-          // Pour revision_class_4 : on récupère le rapport structuré via /latest-report
-          setClass4Loading(true)
-          setClass4Report(null)
+      if (isClass4) {
+        // Polling /latest-report toutes les 15s jusqu'à avoir un rapport plus récent que le lancement
+        setClass4Loading(true)
+        setClass4Report(null)
+
+        let attempts = 0
+        const maxAttempts = 20 // 5 minutes max
+
+        const poll = async () => {
+          attempts++
           try {
             const report = await fetchLatestReport({ client: clientName, scope: 'class4' })
-            setClass4Report(report)
-          } catch (_) {
-            // Fallback : afficher le runBlock classique si /latest-report échoue
+            const reportTime = report.created_at ? new Date(report.created_at).getTime() : 0
+            if (reportTime >= launchTime - 5000 || attempts === 1) {
+              // Rapport récent (généré après le lancement) ou premier rapport dispo
+              setClass4Report(report)
+              setClass4Loading(false)
+              return
+            }
+          } catch (_) {}
+
+          if (attempts < maxAttempts) {
+            setTimeout(poll, 15000)
+          } else {
+            // Timeout 5 min : fallback Airtable
+            setClass4Loading(false)
             setRunBlock({
               runId: res.run_id || res.airtable_record_id,
               airtableRecordId: res.airtable_record_id || res.run_id,
               tache, clientNom: clientName, fournisseur, error: null,
             })
-          } finally {
-            setClass4Loading(false)
           }
-        } else {
-          setRunBlock({
-            runId: res.run_id || res.airtable_record_id,
-            airtableRecordId: res.airtable_record_id || res.run_id,
-            tache, clientNom: clientName, fournisseur, error: null,
-          })
         }
-      }, 5500)
+
+        setTimeout(poll, 15000) // première tentative après 15s
+      } else {
+        setRunBlock({
+          runId: res.run_id || res.airtable_record_id,
+          airtableRecordId: res.airtable_record_id || res.run_id,
+          tache, clientNom: clientName, fournisseur, error: null,
+        })
+      }
     } catch (e) {
       setTimeout(() => {
         setRunningTask(null)
