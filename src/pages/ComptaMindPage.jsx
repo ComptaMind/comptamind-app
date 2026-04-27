@@ -448,7 +448,7 @@ function AnomalyCard({ anomaly }) {
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${sev.badge}`}>{sev.label}</span>
-              <span className="text-xs font-mono font-semibold text-slate-700">{anomaly.account}</span>
+              <span className="text-xs font-mono font-semibold text-slate-700">{anomaly.account_number || anomaly.account}</span>
               {anomaly.account_label && (
                 <span className="text-xs text-slate-500">{anomaly.account_label}</span>
               )}
@@ -484,7 +484,13 @@ function AnomalyCard({ anomaly }) {
 function Class4ReportDisplay({ report, clientName, onClose }) {
   if (!report) return null
 
-  const { summary, anomalies = [], anomalies_count, period, created_at } = report
+  // Compatibilité avec la structure réelle du VPS
+  const anomalies = report.anomalies || []
+  const period = report.period || ''
+  const dateStr = report.generated_at || report.created_at || ''
+  const summaryText = report.overall_assessment || report.conclusion || (typeof report.summary === 'string' ? report.summary : '')
+  const summaryObj = typeof report.summary === 'object' && report.summary !== null ? report.summary : null
+  const anomalies_count = report.anomalies_count ?? summaryObj?.anomalies_detected ?? anomalies.length
 
   const bySeverity = {
     critical: anomalies.filter(a => a.severity === 'critical'),
@@ -494,14 +500,14 @@ function Class4ReportDisplay({ report, clientName, onClose }) {
   }
 
   const stats = [
-    { label: 'Anomalies critiques', count: bySeverity.critical.length, color: 'text-red-700', bg: 'bg-red-50 border-red-100' },
-    { label: 'Priorité haute',      count: bySeverity.high.length,     color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
-    { label: 'À vérifier',          count: bySeverity.medium.length,   color: 'text-amber-700', bg: 'bg-amber-50 border-amber-100' },
-    { label: 'Information',         count: bySeverity.low.length,      color: 'text-slate-600', bg: 'bg-slate-50 border-slate-100' },
+    { label: 'Anomalies critiques', count: summaryObj?.critical  ?? bySeverity.critical.length, color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
+    { label: 'Priorité haute',      count: summaryObj?.high      ?? bySeverity.high.length,     color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
+    { label: 'À vérifier',          count: summaryObj?.medium    ?? bySeverity.medium.length,   color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
+    { label: 'Information',         count: summaryObj?.low       ?? bySeverity.low.length,      color: 'text-slate-600',  bg: 'bg-slate-50 border-slate-100' },
   ]
 
-  const formattedDate = created_at
-    ? new Date(created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const formattedDate = dateStr
+    ? new Date(dateStr).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : ''
 
   return (
@@ -522,7 +528,7 @@ function Class4ReportDisplay({ report, clientName, onClose }) {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">
-                {anomalies_count ?? anomalies.length} anomalie{(anomalies_count ?? anomalies.length) > 1 ? 's' : ''}
+                {anomalies_count} anomalie{anomalies_count > 1 ? 's' : ''}
               </span>
               {onClose && (
                 <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
@@ -533,9 +539,9 @@ function Class4ReportDisplay({ report, clientName, onClose }) {
           </div>
 
           {/* Synthèse */}
-          {summary && (
+          {summaryText && (
             <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
-              <p className="text-xs text-slate-600 leading-relaxed">{summary}</p>
+              <p className="text-xs text-slate-600 leading-relaxed">{summaryText}</p>
             </div>
           )}
 
@@ -790,9 +796,25 @@ export default function ComptaMindPage() {
               <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
                 <Bot size={16} className="text-white" />
               </div>
-              <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-3">
-                <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                <span className="text-sm text-slate-600">Chargement du rapport classe 4...</span>
+              <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                  <span className="text-sm text-slate-600">Révision en cours — le rapport arrivera dans 2–3 minutes...</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const report = await fetchLatestReport({ client: clientName, scope: 'class4' })
+                      setClass4Report(report)
+                      setClass4Loading(false)
+                    } catch (e) {
+                      alert('Rapport pas encore disponible. Patientez encore un peu.')
+                    }
+                  }}
+                  className="self-start text-xs text-brand-600 hover:text-brand-700 underline underline-offset-2"
+                >
+                  Voir le dernier rapport disponible →
+                </button>
               </div>
             </div>
           )}
