@@ -660,15 +660,14 @@ export default function ComptaMindPage() {
         setClass4Report(null)
 
         let attempts = 0
-        const maxAttempts = 20 // 5 minutes max
+        const maxAttempts = 15 // ~4 minutes max après le premier poll
 
         const poll = async () => {
           attempts++
           try {
             const report = await fetchLatestReport({ client: clientName, scope: 'class4' })
-            const reportTime = report.created_at ? new Date(report.created_at).getTime() : 0
-            if (reportTime >= launchTime - 5000 || attempts === 1) {
-              // Rapport récent (généré après le lancement) ou premier rapport dispo
+            // Affiche le rapport dès qu'il est dispo (peu importe sa date)
+            if (report && (report.anomalies || report.client)) {
               setClass4Report(report)
               setClass4Loading(false)
               return
@@ -676,9 +675,9 @@ export default function ComptaMindPage() {
           } catch (_) {}
 
           if (attempts < maxAttempts) {
-            setTimeout(poll, 15000)
+            setTimeout(poll, 20000) // toutes les 20s
           } else {
-            // Timeout 5 min : fallback Airtable
+            // Timeout : fallback Airtable
             setClass4Loading(false)
             setRunBlock({
               runId: res.run_id || res.airtable_record_id,
@@ -688,7 +687,7 @@ export default function ComptaMindPage() {
           }
         }
 
-        setTimeout(poll, 15000) // première tentative après 15s
+        setTimeout(poll, 150000) // première tentative après 2.5 min (révision dure ~130s)
       } else {
         setRunBlock({
           runId: res.run_id || res.airtable_record_id,

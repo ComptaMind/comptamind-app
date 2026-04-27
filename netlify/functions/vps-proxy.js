@@ -38,7 +38,7 @@ exports.handler = async (event) => {
     const fetchOptions = {
       method: isPost ? "POST" : "GET",
       headers: reqHeaders,
-      signal: AbortSignal.timeout(10000), // 10s max (réponse immédiate attendue)
+      signal: AbortSignal.timeout(endpoint.includes("latest-report") ? 30000 : 10000),
     };
     if (isPost && event.body) fetchOptions.body = event.body;
 
