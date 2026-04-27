@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { listRecords, getRecord } from '../lib/airtable'
-import { runTask as callVPS } from '../lib/api'
+import { runTask as callVPS, fetchLatestReport } from '../lib/api'
 import { EXCLUDED_CLIENT_IDS } from '../hooks/useAirtableClients'
 import {
   TBL_CLIENTS, TBL_QUEUE,
@@ -23,6 +23,7 @@ const TACHE_MAP = {
   rapport:       'rapport',
   rapprochement: 'rapprochement_bancaire',
   relances:      'relance_clients',
+  class4:        'revision_class_4',
 }
 
 const TASK_LABELS = {
@@ -33,6 +34,7 @@ const TASK_LABELS = {
   rapport:       'Rapport',
   rapprochement: 'Rapprochement bancaire',
   relances:      'Relances clients',
+  class4:        'Révision classe 4',
 }
 
 // ─── Actions copilot ──────────────────────────────────────────────────────────
@@ -91,6 +93,15 @@ const COPILOT_ACTIONS = [
     detail: 'Analyse la balance âgée clients et prépare les relances selon les délais.',
     accent: 'amber',
     priority: false,
+  },
+  {
+    id: 'class4',
+    icon: '🔎',
+    label: 'Révision classe 4',
+    outcome: 'Contrôler les comptes tiers 40x, 41x, 42x, 43x, 44x, 45x',
+    detail: 'Détecte les anomalies sur les comptes de tiers : soldes anormaux, lettrage manquant, écarts TVA.',
+    accent: 'purple',
+    priority: true,
   },
 ]
 
@@ -412,6 +423,155 @@ function Message({ msg }) {
   )
 }
 
+// ─── Rapport Classe 4 ─────────────────────────────────────────────────────────
+
+const SEVERITY_CONFIG = {
+  critical: { label: 'Anomalie critique',  bg: 'bg-red-50',    border: 'border-red-200',    badge: 'bg-red-100 text-red-700',    dot: 'bg-red-500' },
+  high:     { label: 'Priorité haute',     bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+  medium:   { label: 'À vérifier',         bg: 'bg-amber-50',  border: 'border-amber-200',  badge: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400' },
+  low:      { label: 'Information',        bg: 'bg-slate-50',  border: 'border-slate-200',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
+}
+
+function AnomalyCard({ anomaly }) {
+  const [expanded, setExpanded] = useState(false)
+  const sev = SEVERITY_CONFIG[anomaly.severity] || SEVERITY_CONFIG.low
+
+  const amount = anomaly.amount != null
+    ? new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(anomaly.amount)
+    : null
+
+  return (
+    <div className={`rounded-xl border p-4 ${sev.bg} ${sev.border}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <span className={`mt-1 w-2.5 h-2.5 rounded-full flex-shrink-0 ${sev.dot}`} />
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${sev.badge}`}>{sev.label}</span>
+              <span className="text-xs font-mono font-semibold text-slate-700">{anomaly.account}</span>
+              {anomaly.account_label && (
+                <span className="text-xs text-slate-500">{anomaly.account_label}</span>
+              )}
+            </div>
+            <p className="text-sm text-slate-800 font-medium">{anomaly.explanation}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {amount && (
+            <div className="text-right">
+              <p className="text-xs text-slate-500">Montant concerné</p>
+              <p className="text-sm font-bold text-slate-900">{amount}</p>
+            </div>
+          )}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-white/70 rounded-lg transition-colors"
+          >
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+      </div>
+      {expanded && anomaly.recommended_action && (
+        <div className="mt-3 ml-5 pl-3 border-l-2 border-current border-opacity-20">
+          <p className="text-xs font-semibold text-slate-500 mb-1">Action recommandée</p>
+          <p className="text-sm text-slate-700">{anomaly.recommended_action}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Class4ReportDisplay({ report, clientName, onClose }) {
+  if (!report) return null
+
+  const { summary, anomalies = [], anomalies_count, period, created_at } = report
+
+  const bySeverity = {
+    critical: anomalies.filter(a => a.severity === 'critical'),
+    high:     anomalies.filter(a => a.severity === 'high'),
+    medium:   anomalies.filter(a => a.severity === 'medium'),
+    low:      anomalies.filter(a => a.severity === 'low'),
+  }
+
+  const stats = [
+    { label: 'Anomalies critiques', count: bySeverity.critical.length, color: 'text-red-700', bg: 'bg-red-50 border-red-100' },
+    { label: 'Priorité haute',      count: bySeverity.high.length,     color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
+    { label: 'À vérifier',          count: bySeverity.medium.length,   color: 'text-amber-700', bg: 'bg-amber-50 border-amber-100' },
+    { label: 'Information',         count: bySeverity.low.length,      color: 'text-slate-600', bg: 'bg-slate-50 border-slate-100' },
+  ]
+
+  const formattedDate = created_at
+    ? new Date(created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : ''
+
+  return (
+    <div className="flex items-start gap-3 animate-slide-up">
+      <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
+        <Bot size={16} className="text-white" />
+      </div>
+      <div className="flex-1 max-w-2xl">
+        {/* Header rapport */}
+        <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <div>
+              <p className="text-sm font-bold text-slate-900">Rapport Révision Classe 4 — {clientName}</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {period && <span>{period} · </span>}
+                {formattedDate && <span>{formattedDate}</span>}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">
+                {anomalies_count ?? anomalies.length} anomalie{(anomalies_count ?? anomalies.length) > 1 ? 's' : ''}
+              </span>
+              {onClose && (
+                <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                  <ChevronUp size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Synthèse */}
+          {summary && (
+            <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
+              <p className="text-xs text-slate-600 leading-relaxed">{summary}</p>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div className="grid grid-cols-4 gap-0 border-b border-slate-100">
+            {stats.map(s => (
+              <div key={s.label} className={`flex flex-col items-center py-3 border-r last:border-r-0 border-slate-100 ${s.bg}`}>
+                <p className={`text-xl font-bold ${s.color}`}>{s.count}</p>
+                <p className="text-xs text-slate-500 text-center leading-tight px-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Liste anomalies */}
+          {anomalies.length > 0 && (
+            <div className="p-4 space-y-2 max-h-96 overflow-y-auto">
+              {['critical', 'high', 'medium', 'low'].map(sev =>
+                bySeverity[sev].map((anomaly, i) => (
+                  <AnomalyCard key={`${sev}-${i}`} anomaly={anomaly} />
+                ))
+              )}
+            </div>
+          )}
+
+          {anomalies.length === 0 && (
+            <div className="px-5 py-8 text-center">
+              <p className="text-slate-500 text-sm font-medium">Aucune anomalie détectée</p>
+              <p className="text-slate-400 text-xs mt-1">La révision classe 4 n'a relevé aucun point d'attention.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function ComptaMindPage() {
@@ -423,6 +583,8 @@ export default function ComptaMindPage() {
   const [thinking, setThinking] = useState(false)
   const [runningTask, setRunningTask] = useState(null)
   const [runBlock, setRunBlock] = useState(null)
+  const [class4Report, setClass4Report] = useState(null)
+  const [class4Loading, setClass4Loading] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -459,6 +621,8 @@ export default function ComptaMindPage() {
     }])
     setRunningTask(null)
     setRunBlock(null)
+    setClass4Report(null)
+    setClass4Loading(false)
   }, [selectedClientId])
 
   const addMsg = (type, text) =>
@@ -474,15 +638,37 @@ export default function ComptaMindPage() {
     setRunningTask({ tache, title, fournisseur })
     setRunBlock(null)
 
+    const isClass4 = tache === 'class4'
+
     try {
       const res = await callVPS({ client: clientName, tache: vtache, exercice: clientExercice, fournisseur })
-      setTimeout(() => {
+      setTimeout(async () => {
         setRunningTask(null)
-        setRunBlock({
-          runId: res.run_id || res.airtable_record_id,
-          airtableRecordId: res.airtable_record_id || res.run_id,
-          tache, clientNom: clientName, fournisseur, error: null,
-        })
+
+        if (isClass4) {
+          // Pour revision_class_4 : on récupère le rapport structuré via /latest-report
+          setClass4Loading(true)
+          setClass4Report(null)
+          try {
+            const report = await fetchLatestReport({ client: clientName, scope: 'class4' })
+            setClass4Report(report)
+          } catch (_) {
+            // Fallback : afficher le runBlock classique si /latest-report échoue
+            setRunBlock({
+              runId: res.run_id || res.airtable_record_id,
+              airtableRecordId: res.airtable_record_id || res.run_id,
+              tache, clientNom: clientName, fournisseur, error: null,
+            })
+          } finally {
+            setClass4Loading(false)
+          }
+        } else {
+          setRunBlock({
+            runId: res.run_id || res.airtable_record_id,
+            airtableRecordId: res.airtable_record_id || res.run_id,
+            tache, clientNom: clientName, fournisseur, error: null,
+          })
+        }
       }, 5500)
     } catch (e) {
       setTimeout(() => {
@@ -567,6 +753,24 @@ export default function ComptaMindPage() {
           {thinking && <ThinkingIndicator />}
           {runningTask && <TaskProgress task={runningTask} />}
           {runBlock && <RunBlock {...runBlock} />}
+          {class4Loading && (
+            <div className="flex items-start gap-3 animate-slide-up">
+              <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
+                <Bot size={16} className="text-white" />
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <span className="text-sm text-slate-600">Chargement du rapport classe 4...</span>
+              </div>
+            </div>
+          )}
+          {class4Report && !class4Loading && (
+            <Class4ReportDisplay
+              report={class4Report}
+              clientName={clientName}
+              onClose={() => setClass4Report(null)}
+            />
+          )}
           <div ref={messagesEndRef} />
         </div>
 

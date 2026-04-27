@@ -53,3 +53,12 @@ export async function runDebug({ client, tache, exercice, fournisseur = "" }) {
 export async function runTask({ client, tache, exercice, fournisseur = "" }) {
   return call("/run", "POST", { client, tache, exercice, fournisseur });
 }
+
+/**
+ * Récupère le dernier rapport de révision
+ * @param {string} client - ex: "ATALAO"
+ * @param {string} scope  - ex: "class4"
+ */
+export async function fetchLatestReport({ client, scope = "class4" }) {
+  return call(`/latest-report?client=${encodeURIComponent(client)}&scope=${encodeURIComponent(scope)}`);
+}
