@@ -585,6 +585,7 @@ export default function ComptaMindPage() {
   const [runBlock, setRunBlock] = useState(null)
   const [class4Report, setClass4Report] = useState(null)
   const [class4Loading, setClass4Loading] = useState(false)
+  const [panelCollapsed, setPanelCollapsed] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -623,6 +624,7 @@ export default function ComptaMindPage() {
     setRunBlock(null)
     setClass4Report(null)
     setClass4Loading(false)
+    setPanelCollapsed(false)
   }, [selectedClientId])
 
   const addMsg = (type, text) =>
@@ -635,6 +637,7 @@ export default function ComptaMindPage() {
     const title = `${label}${fournisseur ? ` — ${fournisseur}` : ''} · ${clientName}`
 
     addMsg('assistant', `Lancement de **${label}**${fournisseur ? ` sur ${fournisseur}` : ''} pour **${clientName}** (exercice ${clientExercice}).\nConnexion au VPS...`)
+    setPanelCollapsed(true)
     setRunningTask({ tache, title, fournisseur })
     setRunBlock(null)
 
@@ -740,12 +743,24 @@ export default function ComptaMindPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* ── AI Copilot Panel (core experience) ── */}
-        <AICopilotPanel
-          clientName={clientName}
-          clientExercice={clientExercice}
-          onLaunch={launchTask}
-          disabled={isTaskRunning}
-        />
+        {panelCollapsed ? (
+          <div className="bg-white border-b border-slate-100 px-8 py-2 flex items-center justify-between">
+            <span className="text-xs text-slate-400">Actions disponibles pour {clientName}</span>
+            <button
+              onClick={() => setPanelCollapsed(false)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors"
+            >
+              <ChevronDown size={13} /> Voir les actions
+            </button>
+          </div>
+        ) : (
+          <AICopilotPanel
+            clientName={clientName}
+            clientExercice={clientExercice}
+            onLaunch={launchTask}
+            disabled={isTaskRunning}
+          />
+        )}
 
         {/* ── Chat / Résultats ── */}
         <div className="flex-1 overflow-y-auto px-8 py-5 space-y-4 bg-slate-50">
