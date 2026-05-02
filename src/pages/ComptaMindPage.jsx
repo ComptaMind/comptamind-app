@@ -24,6 +24,7 @@ const TACHE_MAP = {
   rapprochement: 'rapprochement_bancaire',
   relances:      'relance_clients',
   class4:        'revision_class_4',
+  class5:        'revision_class_5',
 }
 
 const TASK_LABELS = {
@@ -35,6 +36,7 @@ const TASK_LABELS = {
   rapprochement: 'Rapprochement bancaire',
   relances:      'Relances clients',
   class4:        'Révision classe 4',
+  class5:        'Révision classe 5',
 }
 
 // ─── Actions copilot ──────────────────────────────────────────────────────────
@@ -102,6 +104,15 @@ const COPILOT_ACTIONS = [
     detail: 'Détecte les anomalies sur les comptes de tiers : soldes anormaux, lettrage manquant, écarts TVA.',
     accent: 'purple',
     priority: true,
+  },
+  {
+    id: 'class5',
+    icon: '🏦',
+    label: 'Révision classe 5',
+    outcome: 'Contrôler les comptes de trésorerie 511, 512, 530, 580',
+    detail: 'Détecte les anomalies de trésorerie : transactions non rapprochées, virements internes non soldés, solde créditeur en caisse.',
+    accent: 'emerald',
+    priority: false,
   },
 ]
 
@@ -481,7 +492,7 @@ function AnomalyCard({ anomaly }) {
   )
 }
 
-function Class4ReportDisplay({ report, clientName, onClose }) {
+function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onClose }) {
   if (!report) return null
 
   // Compatibilité avec la structure réelle du VPS
@@ -520,7 +531,7 @@ function Class4ReportDisplay({ report, clientName, onClose }) {
         <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div>
-              <p className="text-sm font-bold text-slate-900">Rapport Révision Classe 4 — {clientName}</p>
+              <p className="text-sm font-bold text-slate-900">Rapport Révision {classLabel} — {clientName}</p>
               <p className="text-xs text-slate-400 mt-0.5">
                 {period && <span>{period} · </span>}
                 {formattedDate && <span>{formattedDate}</span>}
@@ -591,6 +602,8 @@ export default function ComptaMindPage() {
   const [runBlock, setRunBlock] = useState(null)
   const [class4Report, setClass4Report] = useState(null)
   const [class4Loading, setClass4Loading] = useState(false)
+  const [class5Report, setClass5Report] = useState(null)
+  const [class5Loading, setClass5Loading] = useState(false)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -630,6 +643,8 @@ export default function ComptaMindPage() {
     setRunBlock(null)
     setClass4Report(null)
     setClass4Loading(false)
+    setClass5Report(null)
+    setClass5Loading(false)
     setPanelCollapsed(false)
   }, [selectedClientId])
 
@@ -648,6 +663,7 @@ export default function ComptaMindPage() {
     setRunBlock(null)
 
     const isClass4 = tache === 'class4'
+    const isClass5 = tache === 'class5'
     const launchTime = Date.now()
 
     try {
@@ -688,6 +704,37 @@ export default function ComptaMindPage() {
         }
 
         setTimeout(poll, 150000) // première tentative après 2.5 min (révision dure ~130s)
+      } else if (isClass5) {
+        setClass5Loading(true)
+        setClass5Report(null)
+
+        let attempts5 = 0
+        const maxAttempts5 = 15
+
+        const poll5 = async () => {
+          attempts5++
+          try {
+            const report = await fetchLatestReport({ client: clientName, scope: 'class5' })
+            if (report && (report.anomalies || report.client)) {
+              setClass5Report(report)
+              setClass5Loading(false)
+              return
+            }
+          } catch (_) {}
+
+          if (attempts5 < maxAttempts5) {
+            setTimeout(poll5, 20000)
+          } else {
+            setClass5Loading(false)
+            setRunBlock({
+              runId: res.run_id || res.airtable_record_id,
+              airtableRecordId: res.airtable_record_id || res.run_id,
+              tache, clientNom: clientName, fournisseur, error: null,
+            })
+          }
+        }
+
+        setTimeout(poll5, 150000)
       } else {
         setRunBlock({
           runId: res.run_id || res.airtable_record_id,
@@ -822,6 +869,41 @@ export default function ComptaMindPage() {
               report={class4Report}
               clientName={clientName}
               onClose={() => setClass4Report(null)}
+            />
+          )}
+          {class5Loading && (
+            <div className="flex items-start gap-3 animate-slide-up">
+              <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
+                <Bot size={16} className="text-white" />
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                  <span className="text-sm text-slate-600">Révision classe 5 en cours — le rapport arrivera dans 2–3 minutes...</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const report = await fetchLatestReport({ client: clientName, scope: 'class5' })
+                      setClass5Report(report)
+                      setClass5Loading(false)
+                    } catch (e) {
+                      alert('Rapport pas encore disponible. Patientez encore un peu.')
+                    }
+                  }}
+                  className="self-start text-xs text-brand-600 hover:text-brand-700 underline underline-offset-2"
+                >
+                  Voir le dernier rapport disponible →
+                </button>
+              </div>
+            </div>
+          )}
+          {class5Report && !class5Loading && (
+            <Class4ReportDisplay
+              report={class5Report}
+              clientName={clientName}
+              classLabel="Classe 5"
+              onClose={() => setClass5Report(null)}
             />
           )}
           <div ref={messagesEndRef} />
