@@ -580,7 +580,7 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
           {anomalies.length === 0 && (
             <div className="px-5 py-8 text-center">
               <p className="text-slate-500 text-sm font-medium">Aucune anomalie détectée</p>
-              <p className="text-slate-400 text-xs mt-1">La révision classe 4 n'a relevé aucun point d'attention.</p>
+              <p className="text-slate-400 text-xs mt-1">La révision {classLabel} n'a relevé aucun point d'attention.</p>
             </div>
           )}
         </div>
