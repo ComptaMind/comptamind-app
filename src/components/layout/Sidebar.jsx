@@ -7,13 +7,13 @@ import { useAppStore } from '../../store/useAppStore'
 import clsx from 'clsx'
 
 const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
-  { to: '/clients', icon: Users, label: 'Mes clients' },
-  { to: '/comptamind', icon: Bot, label: 'ComptaMind IA' },
-  { to: '/autonomie', icon: Zap, label: 'Mode Autonome' },
-  { to: '/autorisations', icon: Shield, label: 'Autorisations' },
-  { to: '/memoire', icon: Brain, label: 'Mémoire' },
-  { to: '/rapports', icon: FileText, label: 'Rapports' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/clients', icon: Users, label: 'My Clients' },
+  { to: '/comptamind', icon: Bot, label: 'ComptaMind AI' },
+  { to: '/autonomie', icon: Zap, label: 'Autonomous Mode' },
+  { to: '/autorisations', icon: Shield, label: 'Permissions' },
+  { to: '/memoire', icon: Brain, label: 'Memory' },
+  { to: '/rapports', icon: FileText, label: 'Reports' },
 ]
 
 export default function Sidebar() {
@@ -35,7 +35,7 @@ export default function Sidebar() {
           </div>
           <div>
             <div className="text-white font-bold text-base leading-tight">ComptaMind</div>
-            <div className="text-slate-400 text-xs">IA Comptable</div>
+            <div className="text-slate-400 text-xs">Accounting AI</div>
           </div>
         </div>
       </div>
@@ -49,7 +49,7 @@ export default function Sidebar() {
             </div>
             <div className="flex-1 text-left min-w-0">
               <div className="text-white text-sm font-medium truncate">{cabinet.nom}</div>
-              <div className="text-slate-400 text-xs truncate">{cabinet.plan || 'Plan Essentiel'}</div>
+              <div className="text-slate-400 text-xs truncate">{cabinet.plan || 'Essential Plan'}</div>
             </div>
             <ChevronDown size={14} className="text-slate-500 group-hover:text-slate-300 flex-shrink-0" />
           </button>
@@ -81,7 +81,7 @@ export default function Sidebar() {
       <div className="px-3 py-3 border-t border-white/10">
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)'}}>
           <div className="w-2 h-2 rounded-full bg-brand-400 animate-pulse flex-shrink-0" />
-          <span className="text-brand-400 text-xs font-medium">ComptaMind actif</span>
+          <span className="text-brand-400 text-xs font-medium">ComptaMind active</span>
           <Zap size={12} className="text-brand-400 ml-auto" />
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function Sidebar() {
           className={({ isActive }) => clsx('sidebar-item', isActive && 'active')}
         >
           <Settings size={18} />
-          <span>Paramètres</span>
+          <span>Settings</span>
         </NavLink>
 
         <div className="flex items-center gap-3 px-3 py-2.5 mt-2 border-t border-white/10 pt-3">
@@ -104,7 +104,7 @@ export default function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-white text-sm font-medium truncate">{user?.prenom} {user?.nom}</div>
-            <div className="text-slate-400 text-xs truncate">{user?.role || 'Expert-comptable'}</div>
+            <div className="text-slate-400 text-xs truncate">{user?.role || 'Accountant'}</div>
           </div>
           <button onClick={handleLogout} className="text-slate-500 hover:text-red-400 transition-colors p-1">
             <LogOut size={16} />

@@ -28,15 +28,15 @@ const TACHE_MAP = {
 }
 
 const TASK_LABELS = {
-  saisie:        'Saisie des factures',
-  revision:      'Révision par la balance',
-  rev_fourn:     'Révision fournisseur',
-  rev_client:    'Révision client',
-  rapport:       'Rapport',
-  rapprochement: 'Rapprochement bancaire',
-  relances:      'Relances clients',
-  class4:        'Révision classe 4',
-  class5:        'Révision classe 5',
+  saisie:        'Invoice entry',
+  revision:      'Balance sheet review',
+  rev_fourn:     'Supplier review',
+  rev_client:    'Client review',
+  rapport:       'Report',
+  rapprochement: 'Bank reconciliation',
+  relances:      'Client reminders',
+  class4:        'Class 4 review',
+  class5:        'Class 5 review',
 }
 
 // ─── Actions copilot ──────────────────────────────────────────────────────────
@@ -45,72 +45,72 @@ const COPILOT_ACTIONS = [
   {
     id: 'saisie',
     icon: '📝',
-    label: 'Saisie des factures',
-    outcome: 'Traiter les pièces en attente et mettre la comptabilité à jour',
-    detail: 'Récupère les factures Pennylane et les saisit automatiquement dans les bons comptes.',
+    label: 'Invoice entry',
+    outcome: 'Process pending documents and update the accounting records',
+    detail: 'Fetches Pennylane invoices and automatically posts them to the correct accounts.',
     accent: 'blue',
     priority: true,
   },
   {
     id: 'revision',
     icon: '🔍',
-    label: 'Révision par la balance',
-    outcome: 'Contrôler les comptes 1 à 7 et détecter les anomalies',
-    detail: 'Analyse la balance générale, vérifie les lettrage et signale les incohérences.',
+    label: 'Balance sheet review',
+    outcome: 'Review accounts 1 to 7 and detect anomalies',
+    detail: 'Analyzes the general balance, checks ledger matching and flags inconsistencies.',
     accent: 'purple',
     priority: true,
   },
   {
     id: 'rev_fourn',
     icon: '📋',
-    label: 'Révision fournisseurs',
-    outcome: 'Vérifier les soldes 401, FNP et charges à payer',
-    detail: 'Contrôle le cycle fournisseur : balance auxiliaire, factures non parvenues, cut-off.',
+    label: 'Supplier review',
+    outcome: 'Check 401 balances, accrued expenses and payables',
+    detail: 'Reviews the supplier cycle: auxiliary balance, accrued invoices, cut-off.',
     accent: 'indigo',
     priority: false,
   },
   {
     id: 'rapprochement',
     icon: '🏦',
-    label: 'Rapprochement bancaire',
-    outcome: 'Lettrer les opérations non rapprochées et fiabiliser la trésorerie',
-    detail: 'Compare les relevés bancaires avec les écritures comptables et lettre les opérations.',
+    label: 'Bank reconciliation',
+    outcome: 'Match unreconciled transactions and secure cash position',
+    detail: 'Compares bank statements with accounting entries and reconciles transactions.',
     accent: 'emerald',
     priority: false,
   },
   {
     id: 'rapport',
     icon: '📊',
-    label: 'Rapport de situation',
-    outcome: 'Générer un rapport complet sur l\'état du dossier',
-    detail: 'Synthèse de la situation comptable, indicateurs clés et points d\'attention.',
+    label: 'Situation report',
+    outcome: 'Generate a full report on the client file status',
+    detail: 'Summary of the accounting situation, key indicators and points of attention.',
     accent: 'teal',
     priority: false,
   },
   {
     id: 'relances',
     icon: '📬',
-    label: 'Relances clients',
-    outcome: 'Identifier et relancer les créances en retard',
-    detail: 'Analyse la balance âgée clients et prépare les relances selon les délais.',
+    label: 'Client reminders',
+    outcome: 'Identify and follow up on overdue receivables',
+    detail: 'Analyzes the aged client balance and prepares reminders based on due dates.',
     accent: 'amber',
     priority: false,
   },
   {
     id: 'class4',
     icon: '🔎',
-    label: 'Révision classe 4',
-    outcome: 'Contrôler les comptes tiers 40x, 41x, 42x, 43x, 44x, 45x',
-    detail: 'Détecte les anomalies sur les comptes de tiers : soldes anormaux, lettrage manquant, écarts TVA.',
+    label: 'Class 4 review',
+    outcome: 'Review third-party accounts 40x, 41x, 42x, 43x, 44x, 45x',
+    detail: 'Detects anomalies on third-party accounts: abnormal balances, missing matching, VAT discrepancies.',
     accent: 'purple',
     priority: true,
   },
   {
     id: 'class5',
     icon: '🏦',
-    label: 'Révision classe 5',
-    outcome: 'Contrôler les comptes de trésorerie 511, 512, 530, 580',
-    detail: 'Détecte les anomalies de trésorerie : transactions non rapprochées, virements internes non soldés, solde créditeur en caisse.',
+    label: 'Class 5 review',
+    outcome: 'Review treasury accounts 511, 512, 530, 580',
+    detail: 'Detects treasury anomalies: unreconciled transactions, unsettled internal transfers, credit balance in cash.',
     accent: 'emerald',
     priority: false,
   },
@@ -165,9 +165,9 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
           <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4">
             <Sparkles size={24} className="text-white" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 mb-2">Sélectionnez un dossier pour commencer</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">Select a client to get started</h2>
           <p className="text-sm text-slate-500 mb-5 max-w-md mx-auto">
-            ComptaMind analysera le dossier et vous proposera les actions prioritaires : saisie, révision, rapport, relances.
+            ComptaMind will analyze the client and suggest priority actions: entry, review, report, reminders.
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {COPILOT_ACTIONS.slice(0, 4).map(a => (
@@ -193,7 +193,7 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
             Actions disponibles pour <span className="text-brand-600">{clientName}</span>
             <span className="ml-2 text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Exercice {clientExercice}</span>
           </p>
-          <p className="text-xs text-slate-500">Cliquez sur <strong>Appliquer</strong> pour lancer une action, ou utilisez la zone de texte ci-dessous pour une instruction personnalisée.</p>
+          <p className="text-xs text-slate-500">Click <strong>Apply</strong> to launch an action, or use the text box below for a custom instruction.</p>
         </div>
       </div>
 

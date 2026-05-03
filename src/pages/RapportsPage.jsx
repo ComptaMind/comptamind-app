@@ -20,22 +20,22 @@ function formatDate(str) {
 function getTaskStatus(status) {
   const s = String(status || '').toLowerCase()
   if (s.includes('done') || s.includes('terminé') || s.includes('success'))
-    return { label: 'Terminé', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle }
+    return { label: 'Done', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle }
   if (s.includes('error') || s.includes('erreur'))
-    return { label: 'Erreur', color: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', icon: AlertCircle }
+    return { label: 'Error', color: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', icon: AlertCircle }
   if (s.includes('progress') || s.includes('cours'))
-    return { label: 'En cours', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-400 animate-pulse', icon: Clock }
-  return { label: status || 'En attente', color: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', icon: CircleDot }
+    return { label: 'In progress', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-400 animate-pulse', icon: Clock }
+  return { label: status || 'Pending', color: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', icon: CircleDot }
 }
 
 const typeLabels = {
-  revision_balance: 'Révision balance',
-  saisie_factures: 'Saisie factures',
-  revision_fournisseur: 'Révision fournisseur',
-  revision_client: 'Révision client',
-  relance_clients: 'Relances clients',
-  rapport: 'Rapport',
-  rapprochement_bancaire: 'Rapprochement bancaire',
+  revision_balance: 'Balance review',
+  saisie_factures: 'Invoice entry',
+  revision_fournisseur: 'Supplier review',
+  revision_client: 'Client review',
+  relance_clients: 'Client reminders',
+  rapport: 'Report',
+  rapprochement_bancaire: 'Bank reconciliation',
 }
 
 // ─── Summary Banner ───────────────────────────────────────────────────────────

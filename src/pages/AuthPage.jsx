@@ -4,11 +4,11 @@ import { Eye, EyeOff, ArrowRight, Check, Bot, Mail, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const features = [
-  'Révision balance automatique sur tous vos dossiers',
-  'Rapprochement bancaire en 5 minutes',
-  'Détection d\'anomalies en continu',
-  'Relances clients automatisées',
-  'Tableau de bord cabinet centralisé',
+  'Automatic balance review across all your clients',
+  'Bank reconciliation in 5 minutes',
+  'Continuous anomaly detection',
+  'Automated client reminders',
+  'Centralized firm dashboard',
 ]
 
 export default function AuthPage() {
@@ -29,7 +29,7 @@ export default function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError(error.message === 'Invalid login credentials'
-        ? 'Email ou mot de passe incorrect.'
+        ? 'Incorrect email or password.'
         : error.message)
       setLoading(false)
       return
@@ -80,13 +80,13 @@ export default function AuthPage() {
         <div>
           <div className="inline-flex items-center gap-2 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-6" style={{background: 'rgba(99,102,241,0.3)', border: '1px solid rgba(99,102,241,0.5)'}}>
             <Bot size={14} />
-            Le collaborateur IA des cabinets comptables
+            The AI assistant for accounting firms
           </div>
           <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-            L'intelligence artificielle<br />au service de votre<br />cabinet comptable
+            Artificial intelligence<br />at the service of your<br />accounting firm
           </h2>
           <p className="text-slate-300 text-lg mb-8">
-            Connecté à Pennylane. Opérationnel en 15 minutes.
+            Connected to Pennylane. Up and running in 15 minutes.
           </p>
           <div className="space-y-3">
             {features.map((f, i) => (
@@ -121,13 +121,13 @@ export default function AuthPage() {
               onClick={() => { setTab('login'); setError(''); setSignupSuccess(false) }}
               className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              Se connecter
+              Sign in
             </button>
             <button
               onClick={() => { setTab('signup'); setError(''); setSignupSuccess(false) }}
               className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'signup' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
             >
-              Créer un compte
+              Create account
             </button>
           </div>
 
@@ -137,14 +137,14 @@ export default function AuthPage() {
               <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <Check size={24} className="text-emerald-600" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Compte créé !</h2>
-              <p className="text-slate-500 text-sm">Un email de confirmation vous a été envoyé à <strong>{email}</strong>. Cliquez sur le lien pour activer votre compte.</p>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Account created!</h2>
+              <p className="text-slate-500 text-sm">A confirmation email has been sent to <strong>{email}</strong>. Click the link to activate your account.</p>
             </div>
           ) : tab === 'login' ? (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900">Bon retour 👋</h1>
-                <p className="text-slate-500 text-sm mt-1">Connectez-vous à votre espace cabinet</p>
+                <h1 className="text-2xl font-bold text-slate-900">Welcome back 👋</h1>
+                <p className="text-slate-500 text-sm mt-1">Sign in to your firm workspace</p>
               </div>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
@@ -154,7 +154,7 @@ export default function AuthPage() {
                     <input
                       type="email"
                       className={`input pl-9 ${error ? 'border-red-300' : ''}`}
-                      placeholder="cabinet@exemple.fr"
+                      placeholder="firm@example.com"
                       value={email}
                       onChange={e => { setEmail(e.target.value); setError('') }}
                       required autoFocus
@@ -162,7 +162,7 @@ export default function AuthPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="label">Mot de passe</label>
+                  <label className="label">Password</label>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -183,38 +183,38 @@ export default function AuthPage() {
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Connexion...
+                      Signing in...
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2">
-                      Accéder au tableau de bord
+                      Access dashboard
                       <ArrowRight size={18} />
                     </div>
                   )}
                 </button>
               </form>
               <p className="text-xs text-slate-400 text-center mt-6">
-                Pas encore de compte ?{' '}
+                No account yet?{' '}
                 <button onClick={() => setTab('signup')} className="text-indigo-600 font-semibold hover:underline">
-                  Créer un compte gratuit
+                  Create a free account
                 </button>
               </p>
             </>
           ) : (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900">Créer votre cabinet</h1>
-                <p className="text-slate-500 text-sm mt-1">Accès test 14 jours · Sans carte bancaire</p>
+                <h1 className="text-2xl font-bold text-slate-900">Create your firm</h1>
+                <p className="text-slate-500 text-sm mt-1">14-day trial · No credit card required</p>
               </div>
               <form onSubmit={handleSignup} className="space-y-4">
                 <div>
-                  <label className="label">Email professionnel</label>
+                  <label className="label">Professional email</label>
                   <div className="relative">
                     <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="email"
                       className={`input pl-9 ${error ? 'border-red-300' : ''}`}
-                      placeholder="cabinet@exemple.fr"
+                      placeholder="firm@example.com"
                       value={email}
                       onChange={e => { setEmail(e.target.value); setError('') }}
                       required autoFocus
@@ -222,13 +222,13 @@ export default function AuthPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="label">Mot de passe</label>
+                  <label className="label">Password</label>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       className={`input pl-9 pr-10 ${error ? 'border-red-300' : ''}`}
-                      placeholder="8 caractères minimum"
+                      placeholder="8 characters minimum"
                       value={password}
                       onChange={e => { setPassword(e.target.value); setError('') }}
                       required
@@ -239,7 +239,7 @@ export default function AuthPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="label">Confirmer le mot de passe</label>
+                  <label className="label">Confirm password</label>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -257,24 +257,24 @@ export default function AuthPage() {
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Création du compte...
+                      Creating account...
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2">
-                      Créer mon compte gratuit
+                      Create my free account
                       <ArrowRight size={18} />
                     </div>
                   )}
                 </button>
               </form>
               <p className="text-xs text-slate-400 text-center mt-4">
-                En créant un compte vous acceptez nos{' '}
-                <a href="https://comptamind.fr/mentions-legales.html" target="_blank" rel="noopener" className="underline">CGU</a>
+                By creating an account you agree to our{' '}
+                <a href="https://comptamind.fr/mentions-legales.html" target="_blank" rel="noopener" className="underline">Terms of Service</a>
               </p>
               <p className="text-xs text-slate-400 text-center mt-3">
-                Déjà un compte ?{' '}
+                Already have an account?{' '}
                 <button onClick={() => setTab('login')} className="text-indigo-600 font-semibold hover:underline">
-                  Se connecter
+                  Sign in
                 </button>
               </p>
             </>
