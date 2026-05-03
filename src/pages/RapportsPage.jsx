@@ -62,8 +62,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className="text-2xl font-bold text-emerald-700">{done}</p>
-          <p className="text-xs text-emerald-600 font-medium">opération{done > 1 ? 's' : ''} corrigée{done > 1 ? 's' : ''}</p>
-          <p className="text-xs text-emerald-500 mt-0.5">{done > 0 ? 'Traitées avec succès' : 'Aucune exécution'}</p>
+          <p className="text-xs text-emerald-600 font-medium">completed operation{done > 1 ? 's' : ''}</p>
+          <p className="text-xs text-emerald-500 mt-0.5">{done > 0 ? 'Successfully processed' : 'No executions yet'}</p>
         </div>
       </div>
       <div className={`rounded-xl p-4 border flex items-center gap-3 ${errors > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
@@ -72,8 +72,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className={`text-2xl font-bold ${errors > 0 ? 'text-red-700' : 'text-slate-400'}`}>{errors}</p>
-          <p className={`text-xs font-medium ${errors > 0 ? 'text-red-600' : 'text-slate-400'}`}>action{errors > 1 ? 's' : ''} en attente de correction</p>
-          <p className={`text-xs mt-0.5 ${errors > 0 ? 'text-red-500' : 'text-slate-400'}`}>{errors > 0 ? 'À relancer via ComptaMind IA' : 'Aucune erreur'}</p>
+          <p className={`text-xs font-medium ${errors > 0 ? 'text-red-600' : 'text-slate-400'}`}>action{errors > 1 ? 's' : ''} pending correction</p>
+          <p className={`text-xs mt-0.5 ${errors > 0 ? 'text-red-500' : 'text-slate-400'}`}>{errors > 0 ? 'Rerun via ComptaMind AI' : 'No errors'}</p>
         </div>
       </div>
       <div className={`rounded-xl p-4 border flex items-center gap-3 ${openAlertes > 0 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
@@ -82,8 +82,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className={`text-2xl font-bold ${openAlertes > 0 ? 'text-amber-700' : 'text-slate-400'}`}>{openAlertes}</p>
-          <p className={`text-xs font-medium ${openAlertes > 0 ? 'text-amber-600' : 'text-slate-400'}`}>anomalie{openAlertes > 1 ? 's' : ''} à traiter</p>
-          <p className={`text-xs mt-0.5 ${openAlertes > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{openAlertes > 0 ? 'Détectées par ComptaMind' : 'Aucune anomalie'}</p>
+          <p className={`text-xs font-medium ${openAlertes > 0 ? 'text-amber-600' : 'text-slate-400'}`}>anomal{openAlertes > 1 ? 'ies' : 'y'} to handle</p>
+          <p className={`text-xs mt-0.5 ${openAlertes > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{openAlertes > 0 ? 'Detected by ComptaMind' : 'No anomalies'}</p>
         </div>
       </div>
     </div>
@@ -154,7 +154,7 @@ function ReportCard({ record, isAlert }) {
             )}
             {severity && severityBadge[severity.toLowerCase()] && (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${severityBadge[severity.toLowerCase()]}`}>
-                Sévérité {severity}
+                Severity: {severity}
               </span>
             )}
           </div>
@@ -166,7 +166,7 @@ function ReportCard({ record, isAlert }) {
           {logs && (
             <button
               onClick={handleDownload}
-              title="Télécharger le rapport"
+              title="Download report"
               className="p-1.5 text-slate-300 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
             >
               <Download size={14} />
@@ -230,12 +230,12 @@ export default function RapportsPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       <Header
-        title="Rapports & Activité"
-        subtitle={loading ? 'Chargement…' : `${queueRecords.length} tâche${queueRecords.length > 1 ? 's' : ''} · ${alerteRecords.length} alerte${alerteRecords.length > 1 ? 's' : ''}`}
+        title="Reports & Activity"
+        subtitle={loading ? 'Loading…' : `${queueRecords.length} task${queueRecords.length > 1 ? 's' : ''} · ${alerteRecords.length} alert${alerteRecords.length > 1 ? 's' : ''}`}
         actions={
           <button onClick={load} disabled={loading} className="btn-secondary flex items-center gap-2 text-sm">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Actualiser
+            Refresh
           </button>
         }
       />
@@ -250,7 +250,7 @@ export default function RapportsPage() {
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'queue' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Zap size={13} />
-            Tâches
+            Tasks
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${tab === 'queue' ? 'bg-brand-100 text-brand-700' : 'bg-slate-200 text-slate-500'}`}>
               {queueRecords.length}
             </span>
@@ -260,7 +260,7 @@ export default function RapportsPage() {
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'alertes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <AlertTriangle size={13} />
-            Alertes
+            Alerts
             {openAlertes.length > 0 && (
               <span className="text-xs px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">
                 {openAlertes.length}
@@ -271,7 +271,7 @@ export default function RapportsPage() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm mb-4">
-            <p className="font-semibold text-red-800 mb-1">Impossible de charger les données</p>
+            <p className="font-semibold text-red-800 mb-1">Unable to load data</p>
             <p className="text-red-600">{error}</p>
           </div>
         )}
@@ -279,7 +279,7 @@ export default function RapportsPage() {
         {loading && (
           <div className="flex items-center gap-3 text-slate-400 py-6">
             <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm">Connexion à Airtable…</span>
+            <span className="text-sm">Connecting to Airtable…</span>
           </div>
         )}
 
@@ -289,12 +289,12 @@ export default function RapportsPage() {
               <FileText size={28} className="text-slate-300" />
             </div>
             <p className="text-slate-600 font-semibold mb-1">
-              {tab === 'queue' ? 'Aucune tâche exécutée' : 'Aucune alerte détectée'}
+              {tab === 'queue' ? 'No tasks executed yet' : 'No alerts detected'}
             </p>
             <p className="text-slate-400 text-sm max-w-xs mx-auto">
               {tab === 'queue'
-                ? 'Les tâches ComptaMind apparaîtront ici après chaque exécution.'
-                : 'ComptaMind signalera ici les anomalies détectées dans vos dossiers.'
+                ? 'ComptaMind tasks will appear here after each execution.'
+                : 'ComptaMind will flag anomalies detected in your client files here.'
               }
             </p>
           </div>

@@ -8,45 +8,45 @@ import { useAirtableClients } from '../hooks/useAirtableClients'
 
 const actionDefinitions = [
   {
-    group: 'Saisie & Écritures',
+    group: 'Entry & Journal',
     groupIcon: '📝',
     items: [
-      { key: 'saisie_mensuelle', label: 'Saisie mensuelle', description: 'Récupère et saisit automatiquement les écritures depuis relevés et factures', icon: '📝', risk: 'faible', outcome: 'Comptabilité à jour chaque mois' },
-      { key: 'creation_ecriture', label: 'Création d\'écritures', description: 'Crée des écritures comptables spécifiques non issues de documents', icon: '✍️', risk: 'moyen', outcome: 'Flexibilité sur les opérations diverses' },
-      { key: 'modification_ecriture', label: 'Modification d\'écritures', description: 'Corrige des écritures comptables existantes', icon: '✏️', risk: 'moyen', outcome: 'Correction rapide des erreurs de saisie' },
-      { key: 'suppression_ecriture', label: 'Suppression d\'écritures', description: 'Supprime définitivement des écritures comptables', icon: '🗑️', risk: 'élevé', outcome: 'Action irréversible — confirmation obligatoire' },
+      { key: 'saisie_mensuelle', label: 'Monthly entry', description: 'Automatically retrieves and posts entries from bank statements and invoices', icon: '📝', risk: 'faible', outcome: 'Accounting up to date every month' },
+      { key: 'creation_ecriture', label: 'Create entries', description: 'Creates specific accounting entries not originating from documents', icon: '✍️', risk: 'moyen', outcome: 'Flexibility for miscellaneous operations' },
+      { key: 'modification_ecriture', label: 'Edit entries', description: 'Corrects existing accounting entries', icon: '✏️', risk: 'moyen', outcome: 'Quick correction of data entry errors' },
+      { key: 'suppression_ecriture', label: 'Delete entries', description: 'Permanently deletes accounting entries', icon: '🗑️', risk: 'élevé', outcome: 'Irreversible action — confirmation required' },
     ]
   },
   {
-    group: 'Révision & Contrôle',
+    group: 'Review & Control',
     groupIcon: '🔍',
     items: [
-      { key: 'revision_balance', label: 'Révision par la balance', description: 'Analyse la balance générale, détecte les anomalies et les incohérences', icon: '🔍', risk: 'faible', outcome: 'Dossier conforme avant clôture' },
-      { key: 'export_fec', label: 'Export FEC', description: 'Génère et exporte le Fichier des Écritures Comptables', icon: '📤', risk: 'faible', outcome: 'FEC disponible à la demande' },
+      { key: 'revision_balance', label: 'Balance sheet review', description: 'Analyzes the general balance, detects anomalies and inconsistencies', icon: '🔍', risk: 'faible', outcome: 'File compliant before closing' },
+      { key: 'export_fec', label: 'FEC export', description: 'Generates and exports the accounting entries file (FEC)', icon: '📤', risk: 'faible', outcome: 'FEC available on demand' },
     ]
   },
   {
-    group: 'Clôture',
+    group: 'Year-end closing',
     groupIcon: '🔒',
     items: [
-      { key: 'cloture_exercice', label: 'Clôture de l\'exercice', description: 'Passe les écritures d\'inventaire, provisions et clôture définitive', icon: '🔒', risk: 'élevé', outcome: 'Action irréversible — votre validation est requise' },
+      { key: 'cloture_exercice', label: 'Year-end closing', description: 'Posts year-end adjustments, provisions and definitive closing entries', icon: '🔒', risk: 'élevé', outcome: 'Irreversible action — your approval is required' },
     ]
   },
   {
-    group: 'Facturation',
+    group: 'Invoicing',
     groupIcon: '🧾',
     items: [
-      { key: 'creation_facture', label: 'Création de factures', description: 'Génère de nouvelles factures clients dans Pennylane', icon: '🧾', risk: 'moyen', outcome: 'Facturation automatique selon les règles définies' },
+      { key: 'creation_facture', label: 'Create invoices', description: 'Generates new client invoices in Pennylane', icon: '🧾', risk: 'moyen', outcome: 'Automatic invoicing according to defined rules' },
     ]
   },
   {
-    group: 'Relances clients',
+    group: 'Client reminders',
     groupIcon: '📬',
     items: [
-      { key: 'relances_niveau1', label: 'Relance amiable', description: 'Rappel poli pour factures en retard (< 30 jours)', icon: '💬', risk: 'faible', outcome: 'Récupération automatique des créances courantes' },
-      { key: 'relances_niveau2', label: 'Mise en demeure', description: 'Relance ferme pour factures en retard (30–60 jours)', icon: '📬', risk: 'moyen', outcome: 'Accélère le recouvrement sans intervention manuelle' },
-      { key: 'relances_niveau3', label: 'Relance contentieux', description: 'Mise en demeure formelle avec mention de poursuites', icon: '⚖️', risk: 'élevé', outcome: 'Engagement juridique — votre accord est indispensable' },
-      { key: 'envoi_email_client', label: 'Emails aux clients', description: 'Envoi direct d\'emails au nom de votre cabinet', icon: '✉️', risk: 'moyen', outcome: 'Communication client automatisée' },
+      { key: 'relances_niveau1', label: 'Friendly reminder', description: 'Polite reminder for overdue invoices (< 30 days)', icon: '💬', risk: 'faible', outcome: 'Automatic recovery of current receivables' },
+      { key: 'relances_niveau2', label: 'Formal notice', description: 'Firm reminder for overdue invoices (30–60 days)', icon: '📬', risk: 'moyen', outcome: 'Accelerates collection without manual intervention' },
+      { key: 'relances_niveau3', label: 'Legal reminder', description: 'Formal notice with mention of legal proceedings', icon: '⚖️', risk: 'élevé', outcome: 'Legal commitment — your agreement is essential' },
+      { key: 'envoi_email_client', label: 'Client emails', description: 'Direct emails sent on behalf of your firm', icon: '✉️', risk: 'moyen', outcome: 'Automated client communication' },
     ]
   },
 ]
@@ -55,40 +55,40 @@ const actionDefinitions = [
 
 const levelConfig = {
   autonome: {
-    label: 'Automatique',
+    label: 'Automatic',
     shortLabel: 'Auto',
-    desc: 'ComptaMind agit seul, sans vous déranger',
+    desc: 'ComptaMind acts on its own, without disturbing you',
     icon: CheckCircle,
     ring: 'ring-2 ring-emerald-500',
     activeBg: 'bg-emerald-500',
     activeText: 'text-white',
     badge: 'bg-emerald-100 text-emerald-700',
     dot: 'bg-emerald-500',
-    riskLabel: 'Risque faible',
+    riskLabel: 'Low risk',
   },
   approbation: {
-    label: 'Approbation',
+    label: 'Approval',
     shortLabel: 'Approval',
-    desc: 'ComptaMind vous demande votre accord avant d\'agir',
+    desc: 'ComptaMind asks for your agreement before acting',
     icon: AlertTriangle,
     ring: 'ring-2 ring-amber-400',
     activeBg: 'bg-amber-400',
     activeText: 'text-white',
     badge: 'bg-amber-100 text-amber-700',
     dot: 'bg-amber-400',
-    riskLabel: 'Risque moyen',
+    riskLabel: 'Medium risk',
   },
   bloqué: {
-    label: 'Bloqué',
-    shortLabel: 'Bloqué',
-    desc: 'ComptaMind ne peut jamais effectuer cette action',
+    label: 'Blocked',
+    shortLabel: 'Blocked',
+    desc: 'ComptaMind can never perform this action',
     icon: Lock,
     ring: 'ring-2 ring-red-400',
     activeBg: 'bg-red-400',
     activeText: 'text-white',
     badge: 'bg-red-100 text-red-700',
     dot: 'bg-red-400',
-    riskLabel: 'Risque élevé',
+    riskLabel: 'High risk',
   },
 }
 
@@ -148,7 +148,7 @@ function ActionRow({ actionKey, definition, permission, onChangeGlobal, clientOv
             <span className="text-sm font-semibold text-slate-900">{definition.label}</span>
             <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${rs.bg} ${rs.text} ${rs.border}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${rs.dot}`} />
-              Risque {definition.risk}
+              {definition.risk === 'faible' ? 'Low risk' : definition.risk === 'moyen' ? 'Medium risk' : 'High risk'}
             </span>
           </div>
           <p className="text-xs text-slate-400 truncate">{definition.outcome}</p>
@@ -185,8 +185,8 @@ function ActionRow({ actionKey, definition, permission, onChangeGlobal, clientOv
         <div className="border-t border-slate-100 bg-slate-50/60 rounded-b-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <User size={12} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500">Règles par dossier</span>
-            <span className="text-xs text-slate-400">(surcharge la règle globale)</span>
+            <span className="text-xs font-semibold text-slate-500">Rules per file</span>
+            <span className="text-xs text-slate-400">(overrides the global rule)</span>
           </div>
           <div className="space-y-2">
             {clients.map(client => {
@@ -239,8 +239,8 @@ export default function AutorisationsPage() {
   const riskSummary = [
     {
       level: 'autonome',
-      label: 'Automatique',
-      sublabel: 'ComptaMind agit seul',
+      label: 'Automatic',
+      sublabel: 'ComptaMind acts alone',
       count: counts.autonome || 0,
       icon: CheckCircle,
       bg: 'bg-emerald-50',
@@ -250,8 +250,8 @@ export default function AutorisationsPage() {
     },
     {
       level: 'approbation',
-      label: 'Approbation requise',
-      sublabel: 'Votre accord est demandé',
+      label: 'Approval required',
+      sublabel: 'Your agreement is requested',
       count: counts.approbation || 0,
       icon: AlertTriangle,
       bg: 'bg-amber-50',
@@ -261,8 +261,8 @@ export default function AutorisationsPage() {
     },
     {
       level: 'bloqué',
-      label: 'Bloqué',
-      sublabel: 'Action interdite',
+      label: 'Blocked',
+      sublabel: 'Action not allowed',
       count: counts['bloqué'] || 0,
       icon: Lock,
       bg: 'bg-red-50',
@@ -275,8 +275,8 @@ export default function AutorisationsPage() {
   return (
     <div>
       <Header
-        title="Autorisations ComptaMind"
-        subtitle="Définissez précisément ce que l'IA peut faire seule, avec votre accord, ou jamais"
+        title="ComptaMind Permissions"
+        subtitle="Define precisely what the AI can do alone, with your approval, or never"
       />
 
       <div className="p-8 max-w-5xl space-y-8">
@@ -304,7 +304,7 @@ export default function AutorisationsPage() {
         <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Info size={14} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Comment ça fonctionne</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">How it works</span>
           </div>
           <div className="grid grid-cols-3 gap-4">
             {Object.entries(levelConfig).map(([key, conf]) => {

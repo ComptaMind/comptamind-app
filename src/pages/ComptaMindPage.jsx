@@ -210,7 +210,7 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
                   <div>
                     <p className="text-xs font-bold text-slate-900">{action.label}</p>
                     {action.priority && (
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${s.badge}`}>Recommandé</span>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${s.badge}`}>Recommended</span>
                     )}
                   </div>
                 </div>
@@ -230,7 +230,7 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
                   disabled={disabled}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-white text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${s.btn}`}
                 >
-                  <Play size={11} /> Appliquer
+                  <Play size={11} /> Apply
                 </button>
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : action.id)}
@@ -259,7 +259,7 @@ function ThinkingIndicator() {
       <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
         <div className="flex items-center gap-1.5">
           <span className="thinking-dot" /><span className="thinking-dot" /><span className="thinking-dot" />
-          <span className="text-slate-400 text-sm ml-1">ComptaMind réfléchit...</span>
+          <span className="text-slate-400 text-sm ml-1">ComptaMind is thinking...</span>
         </div>
       </div>
     </div>
@@ -273,9 +273,9 @@ function TaskProgress({ task }) {
   const label = TASK_LABELS[task.tache] || task.tache
   const detail = task.fournisseur ? `${label} — ${task.fournisseur}` : label
   const steps = [
-    { id: 1, label: 'Connexion à Pennylane', duration: 1200 },
-    { id: 2, label: `${detail} en cours...`, duration: 3000 },
-    { id: 3, label: 'Génération du rapport', duration: 800 },
+    { id: 1, label: 'Connecting to Pennylane', duration: 1200 },
+    { id: 2, label: `${detail} in progress...`, duration: 3000 },
+    { id: 3, label: 'Generating report', duration: 800 },
   ]
   useEffect(() => {
     const timers = []
@@ -293,7 +293,7 @@ function TaskProgress({ task }) {
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-bold text-slate-900">{task.title}</div>
           <div className="flex items-center gap-1 text-xs text-brand-600">
-            <div className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />En cours...
+            <div className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />In progress...
           </div>
         </div>
         <div className="space-y-2">
@@ -352,10 +352,10 @@ function RunBlock({ runId, airtableRecordId, tache, clientNom, fournisseur, erro
         </div>
         <div className="flex-1 bg-red-50 border border-red-200 rounded-2xl rounded-tl-sm p-5 shadow-sm max-w-lg">
           <div className="flex items-center gap-2 font-bold text-red-800 mb-2">
-            <AlertTriangle size={16} /> Erreur lors du lancement
+            <AlertTriangle size={16} /> Launch error
           </div>
           <p className="text-sm text-red-700">{error}</p>
-          <p className="text-xs text-red-500 mt-2">Vérifiez que le VPS est accessible et que le dossier existe dans Airtable.</p>
+          <p className="text-xs text-red-500 mt-2">Check that the VPS is accessible and that the client file exists in Airtable.</p>
         </div>
       </div>
     )
@@ -369,18 +369,18 @@ function RunBlock({ runId, airtableRecordId, tache, clientNom, fournisseur, erro
       <div className="flex-1 max-w-lg space-y-3">
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl rounded-tl-sm p-4 shadow-sm">
           <div className="font-bold text-emerald-800 mb-1">
-            ✅ {label}{fournisseur ? ` — ${fournisseur}` : ''} lancée sur {clientNom}
+            ✅ {label}{fournisseur ? ` — ${fournisseur}` : ''} launched for {clientNom}
           </div>
-          {runId && <p className="text-xs text-emerald-700 font-mono">Run ID : {runId}</p>}
+          {runId && <p className="text-xs text-emerald-700 font-mono">Run ID: {runId}</p>}
         </div>
 
         {pollingStatus === 'waiting' && (
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-              <span>En attente du rapport Airtable... {elapsed > 0 && `(${elapsed}s)`}</span>
+              <span>Waiting for Airtable report... {elapsed > 0 && `(${elapsed}s)`}</span>
             </div>
-            <p className="text-xs text-slate-400 mt-2">Le rapport sera affiché ici dès que ComptaMind a terminé (1–5 min).</p>
+            <p className="text-xs text-slate-400 mt-2">The report will appear here once ComptaMind finishes (1–5 min).</p>
           </div>
         )}
 
@@ -388,13 +388,13 @@ function RunBlock({ runId, airtableRecordId, tache, clientNom, fournisseur, erro
           <div className={`rounded-2xl p-4 shadow-sm border ${pollingStatus === 'done' ? 'bg-white border-slate-200' : 'bg-red-50 border-red-200'}`}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-bold text-slate-900">
-                {pollingStatus === 'done' ? '📄 Rapport disponible' : '⚠️ Rapport (avec erreurs)'}
+                {pollingStatus === 'done' ? '📄 Report available' : '⚠️ Report (with errors)'}
               </span>
               <button
                 onClick={() => downloadMarkdown(reportContent, `rapport-${clientNom}-${tache}-${new Date().toISOString().slice(0,10)}.md`)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold rounded-lg hover:bg-brand-100 transition-colors"
               >
-                <Download size={12} /> Télécharger .md
+                <Download size={12} /> Download .md
               </button>
             </div>
             <pre className="text-xs text-slate-700 whitespace-pre-wrap max-h-64 overflow-y-auto bg-slate-50 rounded-lg p-3 font-mono">
@@ -437,10 +437,10 @@ function Message({ msg }) {
 // ─── Rapport Classe 4 ─────────────────────────────────────────────────────────
 
 const SEVERITY_CONFIG = {
-  critical: { label: 'Anomalie critique',  bg: 'bg-red-50',    border: 'border-red-200',    badge: 'bg-red-100 text-red-700',    dot: 'bg-red-500' },
-  high:     { label: 'Priorité haute',     bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
-  medium:   { label: 'À vérifier',         bg: 'bg-amber-50',  border: 'border-amber-200',  badge: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400' },
-  low:      { label: 'Information',        bg: 'bg-slate-50',  border: 'border-slate-200',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
+  critical: { label: 'Critical anomaly',  bg: 'bg-red-50',    border: 'border-red-200',    badge: 'bg-red-100 text-red-700',    dot: 'bg-red-500' },
+  high:     { label: 'High priority',     bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+  medium:   { label: 'To verify',         bg: 'bg-amber-50',  border: 'border-amber-200',  badge: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400' },
+  low:      { label: 'Information',       bg: 'bg-slate-50',  border: 'border-slate-200',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
 }
 
 function AnomalyCard({ anomaly }) {
@@ -470,7 +470,7 @@ function AnomalyCard({ anomaly }) {
         <div className="flex items-center gap-3 flex-shrink-0">
           {amount && (
             <div className="text-right">
-              <p className="text-xs text-slate-500">Montant concerné</p>
+              <p className="text-xs text-slate-500">Amount involved</p>
               <p className="text-sm font-bold text-slate-900">{amount}</p>
             </div>
           )}
@@ -484,7 +484,7 @@ function AnomalyCard({ anomaly }) {
       </div>
       {expanded && anomaly.recommended_action && (
         <div className="mt-3 ml-5 pl-3 border-l-2 border-current border-opacity-20">
-          <p className="text-xs font-semibold text-slate-500 mb-1">Action recommandée</p>
+          <p className="text-xs font-semibold text-slate-500 mb-1">Recommended action</p>
           <p className="text-sm text-slate-700">{anomaly.recommended_action}</p>
         </div>
       )}
@@ -511,10 +511,10 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
   }
 
   const stats = [
-    { label: 'Anomalies critiques', count: summaryObj?.critical  ?? bySeverity.critical.length, color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
-    { label: 'Priorité haute',      count: summaryObj?.high      ?? bySeverity.high.length,     color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
-    { label: 'À vérifier',          count: summaryObj?.medium    ?? bySeverity.medium.length,   color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
-    { label: 'Information',         count: summaryObj?.low       ?? bySeverity.low.length,      color: 'text-slate-600',  bg: 'bg-slate-50 border-slate-100' },
+    { label: 'Critical anomalies', count: summaryObj?.critical  ?? bySeverity.critical.length, color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
+    { label: 'High priority',      count: summaryObj?.high      ?? bySeverity.high.length,     color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
+    { label: 'To verify',          count: summaryObj?.medium    ?? bySeverity.medium.length,   color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
+    { label: 'Information',        count: summaryObj?.low       ?? bySeverity.low.length,      color: 'text-slate-600',  bg: 'bg-slate-50 border-slate-100' },
   ]
 
   const formattedDate = dateStr
@@ -531,7 +531,7 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
         <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div>
-              <p className="text-sm font-bold text-slate-900">Rapport Révision {classLabel} — {clientName}</p>
+              <p className="text-sm font-bold text-slate-900">{classLabel} Review Report — {clientName}</p>
               <p className="text-xs text-slate-400 mt-0.5">
                 {period && <span>{period} · </span>}
                 {formattedDate && <span>{formattedDate}</span>}
@@ -539,7 +539,7 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">
-                {anomalies_count} anomalie{anomalies_count > 1 ? 's' : ''}
+                {anomalies_count} anomal{anomalies_count > 1 ? 'ies' : 'y'}
               </span>
               {onClose && (
                 <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
@@ -579,8 +579,8 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
 
           {anomalies.length === 0 && (
             <div className="px-5 py-8 text-center">
-              <p className="text-slate-500 text-sm font-medium">Aucune anomalie détectée</p>
-              <p className="text-slate-400 text-xs mt-1">La révision {classLabel} n'a relevé aucun point d'attention.</p>
+              <p className="text-slate-500 text-sm font-medium">No anomalies detected</p>
+              <p className="text-slate-400 text-xs mt-1">The {classLabel} review found no points of attention.</p>
             </div>
           )}
         </div>
@@ -636,8 +636,8 @@ export default function ComptaMindPage() {
       id: 'welcome',
       type: 'assistant',
       text: clientName
-        ? `Prêt pour **${clientName}** (exercice ${clientExercice}). Utilisez les boutons ci-dessus pour lancer une action, ou tapez une instruction personnalisée.`
-        : 'Sélectionnez un dossier pour voir les actions disponibles.',
+        ? `Ready for **${clientName}** (year ${clientExercice}). Use the buttons above to launch an action, or type a custom instruction.`
+        : 'Select a client file to see available actions.',
     }])
     setRunningTask(null)
     setRunBlock(null)
@@ -657,7 +657,7 @@ export default function ComptaMindPage() {
     const vtache = TACHE_MAP[tache] || tache
     const title = `${label}${fournisseur ? ` — ${fournisseur}` : ''} · ${clientName}`
 
-    addMsg('assistant', `Lancement de **${label}**${fournisseur ? ` sur ${fournisseur}` : ''} pour **${clientName}** (exercice ${clientExercice}).\nConnexion au VPS...`)
+    addMsg('assistant', `Launching **${label}**${fournisseur ? ` for ${fournisseur}` : ''} for **${clientName}** (year ${clientExercice}).\nConnecting to VPS...`)
     setPanelCollapsed(true)
     setRunningTask({ tache, title, fournisseur })
     setRunBlock(null)
@@ -760,14 +760,14 @@ export default function ComptaMindPage() {
     setTimeout(() => {
       setThinking(false)
       if (!selectedClientId) {
-        addMsg('assistant', "Veuillez d'abord sélectionner un dossier dans le menu ci-dessus.")
+        addMsg('assistant', "Please select a client file from the menu above first.")
         return
       }
       if (intent) {
         launchTask(intent.tache, intent.fournisseur)
       } else {
         addMsg('assistant',
-          "Instruction non reconnue. Exemples :\n• \"Saisie\" — factures en attente\n• \"Révision balance\" — comptes 1 à 7\n• \"Révision fournisseur\" — cycle 40x\n• \"Rapport LECLERC\" — rapport fournisseur\n• \"Relances\" — créances en retard"
+          "Instruction not recognized. Examples:\n• \"Entry\" — pending invoices\n• \"Balance review\" — accounts 1 to 7\n• \"Supplier review\" — cycle 40x\n• \"LECLERC report\" — supplier report\n• \"Reminders\" — overdue receivables"
         )
       }
     }, 900)
@@ -783,7 +783,7 @@ export default function ComptaMindPage() {
     <div className="flex flex-col h-screen">
       <Header
         title="ComptaMind IA"
-        subtitle="Votre copilote comptable"
+        subtitle="Your accounting copilot"
         actions={
           <div className="flex items-center gap-3">
             {/* Sélecteur dossier dans le header */}
@@ -793,8 +793,8 @@ export default function ComptaMindPage() {
                 onChange={e => setSelectedClientId(e.target.value)}
                 className="appearance-none bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-8 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 min-w-56"
               >
-                <option value="">— Choisir un dossier —</option>
-                {loadingClients && <option disabled>Chargement...</option>}
+                <option value="">— Select a client file —</option>
+                {loadingClients && <option disabled>Loading...</option>}
                 {airtableClients.map(c => {
                   const name = c.fields?.[FLD_CLIENT_NAME] || c.fields?.['Client Name'] || c.id
                   return <option key={c.id} value={c.id}>{name}</option>
@@ -814,12 +814,12 @@ export default function ComptaMindPage() {
         {/* ── AI Copilot Panel (core experience) ── */}
         {panelCollapsed ? (
           <div className="bg-white border-b border-slate-100 px-8 py-2 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Actions disponibles pour {clientName}</span>
+            <span className="text-xs text-slate-400">Available actions for {clientName}</span>
             <button
               onClick={() => setPanelCollapsed(false)}
               className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors"
             >
-              <ChevronDown size={13} /> Voir les actions
+              <ChevronDown size={13} /> View actions
             </button>
           </div>
         ) : (
@@ -845,7 +845,7 @@ export default function ComptaMindPage() {
               <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                  <span className="text-sm text-slate-600">Révision en cours — le rapport arrivera dans 2–3 minutes...</span>
+                  <span className="text-sm text-slate-600">Review in progress — the report will arrive in 2–3 minutes...</span>
                 </div>
                 <button
                   onClick={async () => {
@@ -859,7 +859,7 @@ export default function ComptaMindPage() {
                   }}
                   className="self-start text-xs text-brand-600 hover:text-brand-700 underline underline-offset-2"
                 >
-                  Voir le dernier rapport disponible →
+                  View the latest available report →
                 </button>
               </div>
             </div>
@@ -879,7 +879,7 @@ export default function ComptaMindPage() {
               <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                  <span className="text-sm text-slate-600">Révision classe 5 en cours — le rapport arrivera dans 2–3 minutes...</span>
+                  <span className="text-sm text-slate-600">Class 5 review in progress — the report will arrive in 2–3 minutes...</span>
                 </div>
                 <button
                   onClick={async () => {
@@ -893,7 +893,7 @@ export default function ComptaMindPage() {
                   }}
                   className="self-start text-xs text-brand-600 hover:text-brand-700 underline underline-offset-2"
                 >
-                  Voir le dernier rapport disponible →
+                  View the latest available report →
                 </button>
               </div>
             </div>
@@ -919,8 +919,8 @@ export default function ComptaMindPage() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={clientName
-                  ? `Instruction pour ${clientName} — ex: "rapport LECLERC", "révision fournisseur", "relances"...`
-                  : "Sélectionnez d'abord un dossier..."}
+                  ? `Instruction for ${clientName} — e.g.: "LECLERC report", "supplier review", "reminders"...`
+                  : "Select a client file first..."}
                 rows={1}
                 style={{ resize: 'none', maxHeight: '120px' }}
                 className="w-full px-4 py-3 text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-slate-400"
@@ -936,7 +936,7 @@ export default function ComptaMindPage() {
             </button>
           </div>
           <p className="text-center text-xs text-slate-400 mt-2">
-            Instruction personnalisée — ou utilisez les boutons <strong>Appliquer</strong> ci-dessus pour une action directe.
+            Custom instruction — or use the <strong>Apply</strong> buttons above for a direct action.
           </p>
         </div>
       </div>
