@@ -7,22 +7,38 @@ import {
 } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { useAppStore } from '../store/useAppStore'
+import { useT } from '../hooks/useT'
 
-const statusConfig = {
+const statusConfigEn = {
   a_jour: { label: 'Up to date', color: 'bg-emerald-100 text-emerald-700', barColor: 'bg-emerald-500' },
   en_cours: { label: 'In progress', color: 'bg-blue-100 text-blue-700', barColor: 'bg-brand-500' },
   en_retard: { label: 'Late', color: 'bg-red-100 text-red-700', barColor: 'bg-red-400' },
   nouveau: { label: 'New', color: 'bg-slate-100 text-slate-600', barColor: 'bg-slate-300' },
 }
+const statusConfigFr = {
+  a_jour: { label: 'À jour', color: 'bg-emerald-100 text-emerald-700', barColor: 'bg-emerald-500' },
+  en_cours: { label: 'En cours', color: 'bg-blue-100 text-blue-700', barColor: 'bg-brand-500' },
+  en_retard: { label: 'En retard', color: 'bg-red-100 text-red-700', barColor: 'bg-red-400' },
+  nouveau: { label: 'Nouveau', color: 'bg-slate-100 text-slate-600', barColor: 'bg-slate-300' },
+}
 
-const TABS = [
+const TABS_EN = [
   { id: 'apercu', label: 'Overview', icon: Activity },
   { id: 'comptamind', label: 'ComptaMind', icon: Bot },
   { id: 'memoire', label: 'Memory', icon: Brain },
   { id: 'rapports', label: 'Reports', icon: FileText },
 ]
+const TABS_FR = [
+  { id: 'apercu', label: 'Aperçu', icon: Activity },
+  { id: 'comptamind', label: 'ComptaMind', icon: Bot },
+  { id: 'memoire', label: 'Mémoire', icon: Brain },
+  { id: 'rapports', label: 'Rapports', icon: FileText },
+]
 
 export default function ClientDetailPage() {
+  const t = useT()
+  const statusConfig = t(statusConfigEn, statusConfigFr)
+  const TABS = t(TABS_EN, TABS_FR)
   const { id } = useParams()
   const [tab, setTab] = useState('apercu')
   const [showAddMemory, setShowAddMemory] = useState(false)
@@ -38,8 +54,8 @@ export default function ClientDetailPage() {
   if (!client) {
     return (
       <div className="p-8 text-center">
-        <p className="text-slate-500">Client not found.</p>
-        <button onClick={() => navigate('/clients')} className="btn-primary mt-4">Back to clients</button>
+        <p className="text-slate-500">{t('Client not found.', 'Client introuvable.')}</p>
+        <button onClick={() => navigate('/clients')} className="btn-primary mt-4">{t('Back to clients', 'Retour aux clients')}</button>
       </div>
     )
   }
@@ -64,10 +80,10 @@ export default function ClientDetailPage() {
         actions={
           <div className="flex items-center gap-2">
             <button onClick={() => navigate('/clients')} className="btn-ghost">
-              <ArrowLeft size={16} /> Back
+              <ArrowLeft size={16} /> {t('Back', 'Retour')}
             </button>
             <button onClick={() => navigate(`/comptamind?client=${id}`)} className="btn-primary">
-              <Bot size={16} /> Launch ComptaMind
+              <Bot size={16} /> {t('Launch ComptaMind', 'Lancer ComptaMind')}
             </button>
           </div>
         }
@@ -89,7 +105,7 @@ export default function ClientDetailPage() {
                   <span className={`badge ${statusConf.color}`}>{statusConf.label}</span>
                   {client.alertes > 0 && (
                     <span className="badge bg-amber-100 text-amber-700">
-                      <AlertTriangle size={10} /> {client.alertes} alerte{client.alertes > 1 ? 's' : ''}
+                      <AlertTriangle size={10} /> {client.alertes} {t(client.alertes > 1 ? 'alerts' : 'alert', client.alertes > 1 ? 'alertes' : 'alerte')}
                     </span>
                   )}
                 </div>
@@ -115,7 +131,7 @@ export default function ClientDetailPage() {
                   <div className="w-5 h-5 bg-indigo-600 rounded flex items-center justify-center">
                     <span className="text-white text-xs font-black">P</span>
                   </div>
-                  <span className="text-indigo-700 text-xs font-semibold">Pennylane connected</span>
+                  <span className="text-indigo-700 text-xs font-semibold">{t('Pennylane connected', 'Pennylane connecté')}</span>
                 </div>
               )}
             </div>
@@ -124,7 +140,7 @@ export default function ClientDetailPage() {
           {/* Avancement */}
           <div className="mt-5 pt-5 border-t border-slate-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-700">Progress — Year {client.exercice}</span>
+              <span className="text-sm font-medium text-slate-700">{t(`Progress — Year ${client.exercice}`, `Avancement — Exercice ${client.exercice}`)}</span>
               <span className="text-sm font-bold text-slate-900">{client.avancement}%</span>
             </div>
             <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
@@ -140,10 +156,10 @@ export default function ClientDetailPage() {
         {/* Stats mini */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Operations', value: clientActivities.length, icon: '⚡', sub: 'Total completed' },
-            { label: 'Alerts', value: client.alertes, icon: '⚠️', sub: 'Pending' },
-            { label: 'Memories', value: clientMemories.length, icon: '🧠', sub: 'Saved information' },
-            { label: 'Year', value: client.exercice, icon: '📅', sub: client.avancement === 100 ? 'Completed' : 'In progress' },
+            { label: t('Operations', 'Opérations'), value: clientActivities.length, icon: '⚡', sub: t('Total completed', 'Total réalisées') },
+            { label: t('Alerts', 'Alertes'), value: client.alertes, icon: '⚠️', sub: t('Pending', 'En attente') },
+            { label: t('Memories', 'Mémoires'), value: clientMemories.length, icon: '🧠', sub: t('Saved information', 'Informations sauvegardées') },
+            { label: t('Year', 'Exercice'), value: client.exercice, icon: '📅', sub: client.avancement === 100 ? t('Completed', 'Terminé') : t('In progress', 'En cours') },
           ].map((stat, i) => (
             <div key={i} className="card p-4">
               <div className="text-2xl mb-1">{stat.icon}</div>
@@ -173,14 +189,14 @@ export default function ClientDetailPage() {
         {tab === 'apercu' && (
           <div className="grid grid-cols-3 gap-6">
             <div className="col-span-2 card p-6">
-              <h3 className="text-base font-bold text-slate-900 mb-4">ComptaMind activity history</h3>
+              <h3 className="text-base font-bold text-slate-900 mb-4">{t('ComptaMind activity history', 'Historique des actions ComptaMind')}</h3>
               {clientActivities.length === 0 ? (
                 <div className="py-10 text-center">
                   <div className="text-4xl mb-3">🤖</div>
-                  <p className="text-slate-500 font-medium">No activity for this client</p>
-                  <p className="text-slate-400 text-sm mt-1">Launch ComptaMind to get started</p>
+                  <p className="text-slate-500 font-medium">{t('No activity for this client', 'Aucune activité pour ce client')}</p>
+                  <p className="text-slate-400 text-sm mt-1">{t('Launch ComptaMind to get started', 'Lancez ComptaMind pour commencer')}</p>
                   <button onClick={() => navigate(`/comptamind?client=${id}`)} className="btn-primary mt-4">
-                    <Bot size={16} /> Launch ComptaMind
+                    <Bot size={16} /> {t('Launch ComptaMind', 'Lancer ComptaMind')}
                   </button>
                 </div>
               ) : (
@@ -202,7 +218,7 @@ export default function ClientDetailPage() {
                             {activity.status === 'warning' && <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />}
                           </div>
                           <div className="text-xs text-slate-400">
-                            {date.toLocaleDateString('en-US', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                            {date.toLocaleDateString(t('en-US', 'fr-FR'), { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       </div>
@@ -214,13 +230,13 @@ export default function ClientDetailPage() {
 
             <div className="space-y-4">
               <div className="card p-5">
-                <h3 className="text-sm font-bold text-slate-900 mb-4">Information</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-4">{t('Information', 'Informations')}</h3>
                 <div className="space-y-3">
                   {[
-                    { label: 'Manager', value: client.responsable },
-                    { label: 'Tax regime', value: 'IS' },
-                    { label: 'VAT', value: 'Monthly' },
-                    { label: 'Year', value: client.exercice },
+                    { label: t('Manager', 'Responsable'), value: client.responsable },
+                    { label: t('Tax regime', 'Régime fiscal'), value: 'IS' },
+                    { label: t('VAT', 'TVA'), value: t('Monthly', 'Mensuelle') },
+                    { label: t('Year', 'Exercice'), value: client.exercice },
                   ].map(item => (
                     <div key={item.label} className="flex justify-between items-start">
                       <span className="text-xs text-slate-400">{item.label}</span>
@@ -231,12 +247,12 @@ export default function ClientDetailPage() {
               </div>
 
               <div className="card p-5">
-                <h3 className="text-sm font-bold text-slate-900 mb-3">Quick actions</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-3">{t('Quick actions', 'Actions rapides')}</h3>
                 <div className="space-y-2">
                   {[
-                    { label: 'Launch entry', icon: '📝' },
-                    { label: 'Balance review', icon: '🔍' },
-                    { label: 'Send reminders', icon: '📬' },
+                    { label: t('Launch entry', 'Lancer la saisie'), icon: '📝' },
+                    { label: t('Balance review', 'Révision balance'), icon: '🔍' },
+                    { label: t('Send reminders', 'Envoyer les relances'), icon: '📬' },
                   ].map((action, i) => (
                     <button
                       key={i}
@@ -258,34 +274,34 @@ export default function ClientDetailPage() {
           <div>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="text-base font-bold text-slate-900">ComptaMind Memory</h3>
-                <p className="text-sm text-slate-500 mt-0.5">Information and instructions specific to this file</p>
+                <h3 className="text-base font-bold text-slate-900">{t('ComptaMind Memory', 'Mémoire ComptaMind')}</h3>
+                <p className="text-sm text-slate-500 mt-0.5">{t('Information and instructions specific to this file', 'Informations et instructions spécifiques à ce dossier')}</p>
               </div>
               <button onClick={() => setShowAddMemory(true)} className="btn-primary text-sm">
-                <Plus size={15} /> Ajouter
+                <Plus size={15} /> {t('Add', 'Ajouter')}
               </button>
             </div>
 
             {showAddMemory && (
               <div className="card p-5 mb-5 border-brand-200 bg-brand-50/30">
-                <h4 className="text-sm font-bold text-slate-900 mb-3">New memory entry</h4>
+                <h4 className="text-sm font-bold text-slate-900 mb-3">{t('New memory entry', 'Nouvelle entrée mémoire')}</h4>
                 <div className="space-y-3">
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-2">
-                      <input className="input text-sm" placeholder="Memory title"
+                      <input className="input text-sm" placeholder={t('Memory title', 'Titre du souvenir')}
                         value={newMemory.titre} onChange={e => setNewMemory({...newMemory, titre: e.target.value})} />
                     </div>
                     <select className="input text-sm" value={newMemory.categorie} onChange={e => setNewMemory({...newMemory, categorie: e.target.value})}>
-                      <option value="note">📝 Note</option>
-                      <option value="instruction">⚡ Instruction</option>
-                      <option value="preference">⭐ Preference</option>
+                      <option value="note">📝 {t('Note', 'Note')}</option>
+                      <option value="instruction">⚡ {t('Instruction', 'Instruction')}</option>
+                      <option value="preference">⭐ {t('Preference', 'Préférence')}</option>
                     </select>
                   </div>
-                  <textarea className="input text-sm resize-none" rows={3} placeholder="Memory content..."
+                  <textarea className="input text-sm resize-none" rows={3} placeholder={t('Memory content...', 'Contenu du souvenir...')}
                     value={newMemory.contenu} onChange={e => setNewMemory({...newMemory, contenu: e.target.value})} />
                   <div className="flex gap-2 justify-end">
-                    <button onClick={() => setShowAddMemory(false)} className="btn-secondary text-sm py-2">Cancel</button>
-                    <button onClick={handleAddMemory} className="btn-primary text-sm py-2">Save</button>
+                    <button onClick={() => setShowAddMemory(false)} className="btn-secondary text-sm py-2">{t('Cancel', 'Annuler')}</button>
+                    <button onClick={handleAddMemory} className="btn-primary text-sm py-2">{t('Save', 'Enregistrer')}</button>
                   </div>
                 </div>
               </div>
@@ -294,8 +310,8 @@ export default function ClientDetailPage() {
             {clientMemories.length === 0 ? (
               <div className="card p-10 text-center">
                 <div className="text-4xl mb-3">🧠</div>
-                <p className="text-slate-600 font-medium">No memories saved</p>
-                <p className="text-slate-400 text-sm mt-1">Add instructions and information to customize ComptaMind</p>
+                <p className="text-slate-600 font-medium">{t('No memories saved', 'Aucune mémoire enregistrée')}</p>
+                <p className="text-slate-400 text-sm mt-1">{t('Add instructions and information to customize ComptaMind', 'Ajoutez des instructions et informations pour personnaliser ComptaMind')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
@@ -322,7 +338,7 @@ export default function ClientDetailPage() {
                       </div>
                       <p className="text-sm text-slate-600">{mem.contenu}</p>
                       <p className="text-xs text-slate-400 mt-2">
-                        {new Date(mem.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {new Date(mem.createdAt).toLocaleDateString(t('en-US', 'fr-FR'), { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
                   )
@@ -337,10 +353,10 @@ export default function ClientDetailPage() {
             <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4">
               <Bot size={28} className="text-white" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Launch ComptaMind for {client.nom}</h3>
-            <p className="text-slate-500 text-sm mb-6">Open the ComptaMind command interface for this file</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">{t(`Launch ComptaMind for ${client.nom}`, `Lancer ComptaMind pour ${client.nom}`)}</h3>
+            <p className="text-slate-500 text-sm mb-6">{t('Open the ComptaMind command interface for this file', "Ouvrir l'interface de commande ComptaMind pour ce dossier")}</p>
             <button onClick={() => navigate(`/comptamind?client=${id}`)} className="btn-primary mx-auto">
-              <Bot size={16} /> Open ComptaMind
+              <Bot size={16} /> {t('Open ComptaMind', 'Ouvrir ComptaMind')}
             </button>
           </div>
         )}
@@ -348,8 +364,8 @@ export default function ClientDetailPage() {
         {tab === 'rapports' && (
           <div className="card p-8 text-center">
             <div className="text-4xl mb-3">📊</div>
-            <p className="text-slate-600 font-medium">Reports coming soon</p>
-            <p className="text-slate-400 text-sm mt-1">Reports generated by ComptaMind will appear here</p>
+            <p className="text-slate-600 font-medium">{t('Reports coming soon', 'Rapports bientôt disponibles')}</p>
+            <p className="text-slate-400 text-sm mt-1">{t('Reports generated by ComptaMind will appear here', 'Les rapports générés par ComptaMind apparaîtront ici')}</p>
           </div>
         )}
       </div>

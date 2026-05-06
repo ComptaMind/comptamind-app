@@ -6,6 +6,7 @@ import {
 import Header from '../components/layout/Header'
 import { listRecords } from '../lib/airtable'
 import { TBL_QUEUE, TBL_ALERTES } from '../lib/airtable-schema'
+import { useT } from '../hooks/useT'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -17,18 +18,18 @@ function formatDate(str) {
   })
 }
 
-function getTaskStatus(status) {
+function getTaskStatus(status, t) {
   const s = String(status || '').toLowerCase()
   if (s.includes('done') || s.includes('terminé') || s.includes('success'))
-    return { label: 'Done', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle }
+    return { label: t('Done', 'Terminé'), color: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle }
   if (s.includes('error') || s.includes('erreur'))
-    return { label: 'Error', color: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', icon: AlertCircle }
+    return { label: t('Error', 'Erreur'), color: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', icon: AlertCircle }
   if (s.includes('progress') || s.includes('cours'))
-    return { label: 'In progress', color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-400 animate-pulse', icon: Clock }
-  return { label: status || 'Pending', color: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', icon: CircleDot }
+    return { label: t('In progress', 'En cours'), color: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-400 animate-pulse', icon: Clock }
+  return { label: status || t('Pending', 'En attente'), color: 'bg-slate-50 text-slate-600 border-slate-200', dot: 'bg-slate-400', icon: CircleDot }
 }
 
-const typeLabels = {
+const typeLabelsEn = {
   revision_balance: 'Balance review',
   saisie_factures: 'Invoice entry',
   revision_fournisseur: 'Supplier review',
@@ -38,9 +39,20 @@ const typeLabels = {
   rapprochement_bancaire: 'Bank reconciliation',
 }
 
+const typeLabelsFr = {
+  revision_balance: 'Révision balance',
+  saisie_factures: 'Saisie factures',
+  revision_fournisseur: 'Révision fournisseur',
+  revision_client: 'Révision client',
+  relance_clients: 'Relances clients',
+  rapport: 'Rapport',
+  rapprochement_bancaire: 'Rapprochement bancaire',
+}
+
 // ─── Summary Banner ───────────────────────────────────────────────────────────
 
 function SummaryBanner({ queue, alertes }) {
+  const t = useT()
   const done = queue.filter(r => {
     const s = (r.fields?.['Status'] || '').toLowerCase()
     return s.includes('done') || s.includes('terminé') || s.includes('success')
@@ -62,8 +74,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className="text-2xl font-bold text-emerald-700">{done}</p>
-          <p className="text-xs text-emerald-600 font-medium">completed operation{done > 1 ? 's' : ''}</p>
-          <p className="text-xs text-emerald-500 mt-0.5">{done > 0 ? 'Successfully processed' : 'No executions yet'}</p>
+          <p className="text-xs text-emerald-600 font-medium">{t(`completed operation${done > 1 ? 's' : ''}`, `opération${done > 1 ? 's' : ''} réalisée${done > 1 ? 's' : ''}`)}</p>
+          <p className="text-xs text-emerald-500 mt-0.5">{done > 0 ? t('Successfully processed', 'Traitées avec succès') : t('No executions yet', 'Aucune exécution')}</p>
         </div>
       </div>
       <div className={`rounded-xl p-4 border flex items-center gap-3 ${errors > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
@@ -72,8 +84,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className={`text-2xl font-bold ${errors > 0 ? 'text-red-700' : 'text-slate-400'}`}>{errors}</p>
-          <p className={`text-xs font-medium ${errors > 0 ? 'text-red-600' : 'text-slate-400'}`}>action{errors > 1 ? 's' : ''} pending correction</p>
-          <p className={`text-xs mt-0.5 ${errors > 0 ? 'text-red-500' : 'text-slate-400'}`}>{errors > 0 ? 'Rerun via ComptaMind AI' : 'No errors'}</p>
+          <p className={`text-xs font-medium ${errors > 0 ? 'text-red-600' : 'text-slate-400'}`}>{t(`action${errors > 1 ? 's' : ''} pending correction`, `action${errors > 1 ? 's' : ''} à corriger`)}</p>
+          <p className={`text-xs mt-0.5 ${errors > 0 ? 'text-red-500' : 'text-slate-400'}`}>{errors > 0 ? t('Rerun via ComptaMind AI', 'Relancer via ComptaMind IA') : t('No errors', 'Aucune erreur')}</p>
         </div>
       </div>
       <div className={`rounded-xl p-4 border flex items-center gap-3 ${openAlertes > 0 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
@@ -82,8 +94,8 @@ function SummaryBanner({ queue, alertes }) {
         </div>
         <div>
           <p className={`text-2xl font-bold ${openAlertes > 0 ? 'text-amber-700' : 'text-slate-400'}`}>{openAlertes}</p>
-          <p className={`text-xs font-medium ${openAlertes > 0 ? 'text-amber-600' : 'text-slate-400'}`}>anomal{openAlertes > 1 ? 'ies' : 'y'} to handle</p>
-          <p className={`text-xs mt-0.5 ${openAlertes > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{openAlertes > 0 ? 'Detected by ComptaMind' : 'No anomalies'}</p>
+          <p className={`text-xs font-medium ${openAlertes > 0 ? 'text-amber-600' : 'text-slate-400'}`}>{t(`anomal${openAlertes > 1 ? 'ies' : 'y'} to handle`, `anomalie${openAlertes > 1 ? 's' : ''} à traiter`)}</p>
+          <p className={`text-xs mt-0.5 ${openAlertes > 0 ? 'text-amber-500' : 'text-slate-400'}`}>{openAlertes > 0 ? t('Detected by ComptaMind', 'Détectées par ComptaMind') : t('No anomalies', 'Aucune anomalie')}</p>
         </div>
       </div>
     </div>
@@ -93,6 +105,8 @@ function SummaryBanner({ queue, alertes }) {
 // ─── Report Card ─────────────────────────────────────────────────────────────
 
 function ReportCard({ record, isAlert }) {
+  const t = useT()
+  const typeLabels = t(typeLabelsEn, typeLabelsFr)
   const [expanded, setExpanded] = useState(false)
   const fields = record.fields || {}
 
@@ -104,7 +118,7 @@ function ReportCard({ record, isAlert }) {
   const dossier  = Array.isArray(fields['Dossier']) ? fields['Dossier'][0] : (fields['Dossier'] || '')
   const severity = fields['Severity'] || fields['Alert Severity'] || ''
 
-  const st   = getTaskStatus(status)
+  const st   = getTaskStatus(status, t)
   const Icon = st.icon
 
   const severityBadge = {
@@ -154,7 +168,7 @@ function ReportCard({ record, isAlert }) {
             )}
             {severity && severityBadge[severity.toLowerCase()] && (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${severityBadge[severity.toLowerCase()]}`}>
-                Severity: {severity}
+                {t('Severity:', 'Sévérité :')} {severity}
               </span>
             )}
           </div>
@@ -197,6 +211,7 @@ function ReportCard({ record, isAlert }) {
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function RapportsPage() {
+  const t = useT()
   const [queueRecords, setQueueRecords]   = useState([])
   const [alerteRecords, setAlerteRecords] = useState([])
   const [loading, setLoading]             = useState(true)
@@ -230,12 +245,12 @@ export default function RapportsPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       <Header
-        title="Reports & Activity"
-        subtitle={loading ? 'Loading…' : `${queueRecords.length} task${queueRecords.length > 1 ? 's' : ''} · ${alerteRecords.length} alert${alerteRecords.length > 1 ? 's' : ''}`}
+        title={t('Reports & Activity', 'Rapports & Activité')}
+        subtitle={loading ? t('Loading…', 'Chargement…') : `${queueRecords.length} ${t('task', 'tâche')}${queueRecords.length > 1 ? 's' : ''} · ${alerteRecords.length} ${t('alert', 'alerte')}${alerteRecords.length > 1 ? 's' : ''}`}
         actions={
           <button onClick={load} disabled={loading} className="btn-secondary flex items-center gap-2 text-sm">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh
+            {t('Refresh', 'Actualiser')}
           </button>
         }
       />
@@ -250,7 +265,7 @@ export default function RapportsPage() {
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'queue' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <Zap size={13} />
-            Tasks
+            {t('Tasks', 'Tâches')}
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${tab === 'queue' ? 'bg-brand-100 text-brand-700' : 'bg-slate-200 text-slate-500'}`}>
               {queueRecords.length}
             </span>
@@ -260,7 +275,7 @@ export default function RapportsPage() {
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${tab === 'alertes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             <AlertTriangle size={13} />
-            Alerts
+            {t('Alerts', 'Alertes')}
             {openAlertes.length > 0 && (
               <span className="text-xs px-1.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">
                 {openAlertes.length}
@@ -271,7 +286,7 @@ export default function RapportsPage() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm mb-4">
-            <p className="font-semibold text-red-800 mb-1">Unable to load data</p>
+            <p className="font-semibold text-red-800 mb-1">{t('Unable to load data', 'Impossible de charger les données')}</p>
             <p className="text-red-600">{error}</p>
           </div>
         )}
@@ -279,7 +294,7 @@ export default function RapportsPage() {
         {loading && (
           <div className="flex items-center gap-3 text-slate-400 py-6">
             <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm">Connecting to Airtable…</span>
+            <span className="text-sm">{t('Connecting to Airtable…', 'Connexion à Airtable…')}</span>
           </div>
         )}
 
@@ -289,12 +304,12 @@ export default function RapportsPage() {
               <FileText size={28} className="text-slate-300" />
             </div>
             <p className="text-slate-600 font-semibold mb-1">
-              {tab === 'queue' ? 'No tasks executed yet' : 'No alerts detected'}
+              {tab === 'queue' ? t('No tasks executed yet', 'Aucune tâche exécutée') : t('No alerts detected', 'Aucune alerte détectée')}
             </p>
             <p className="text-slate-400 text-sm max-w-xs mx-auto">
               {tab === 'queue'
-                ? 'ComptaMind tasks will appear here after each execution.'
-                : 'ComptaMind will flag anomalies detected in your client files here.'
+                ? t('ComptaMind tasks will appear here after each execution.', 'Les tâches ComptaMind apparaîtront ici après chaque exécution.')
+                : t('ComptaMind will flag anomalies detected in your client files here.', 'ComptaMind signalera ici les anomalies détectées dans vos dossiers clients.')
               }
             </p>
           </div>

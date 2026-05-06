@@ -3,14 +3,22 @@ import { Brain, Plus, Trash2, Edit, Search, Filter } from 'lucide-react'
 import Header from '../components/layout/Header'
 import { useAppStore } from '../store/useAppStore'
 import { useAirtableClients } from '../hooks/useAirtableClients'
+import { useT } from '../hooks/useT'
 
-const catConfig = {
+const catConfigEn = {
   note: { label: 'Note', emoji: '📝', color: 'bg-blue-50 border-blue-100', badge: 'bg-blue-100 text-blue-700' },
   instruction: { label: 'Instruction', emoji: '⚡', color: 'bg-amber-50 border-amber-100', badge: 'bg-amber-100 text-amber-700' },
   preference: { label: 'Preference', emoji: '⭐', color: 'bg-violet-50 border-violet-100', badge: 'bg-violet-100 text-violet-700' },
 }
+const catConfigFr = {
+  note: { label: 'Note', emoji: '📝', color: 'bg-blue-50 border-blue-100', badge: 'bg-blue-100 text-blue-700' },
+  instruction: { label: 'Instruction', emoji: '⚡', color: 'bg-amber-50 border-amber-100', badge: 'bg-amber-100 text-amber-700' },
+  preference: { label: 'Préférence', emoji: '⭐', color: 'bg-violet-50 border-violet-100', badge: 'bg-violet-100 text-violet-700' },
+}
 
 export default function MemoryPage() {
+  const t = useT()
+  const catConfig = t(catConfigEn, catConfigFr)
   const [selectedClient, setSelectedClient] = useState('global')
   const [showAdd, setShowAdd] = useState(false)
   const [search, setSearch] = useState('')
@@ -38,11 +46,11 @@ export default function MemoryPage() {
   return (
     <div>
       <Header
-        title="ComptaMind Memory"
-        subtitle={`${totalMemories} memory entr${totalMemories > 1 ? 'ies' : 'y'} saved`}
+        title={t('ComptaMind Memory', 'Mémoire ComptaMind')}
+        subtitle={t(`${totalMemories} memory entr${totalMemories > 1 ? 'ies' : 'y'} saved`, `${totalMemories} entrée${totalMemories > 1 ? 's' : ''} en mémoire`)}
         actions={
           <button onClick={() => setShowAdd(true)} className="btn-primary">
-            <Plus size={16} /> Add memory
+            <Plus size={16} /> {t('Add memory', 'Ajouter un souvenir')}
           </button>
         }
       />
@@ -54,7 +62,7 @@ export default function MemoryPage() {
             onClick={() => setSelectedClient('global')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedClient === 'global' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
           >
-            🌐 Firm (global)
+            🌐 {t('Firm (global)', 'Cabinet (global)')}
           </button>
           {clients.map(c => (
             <button
@@ -80,12 +88,12 @@ export default function MemoryPage() {
           <Brain size={18} className="text-brand-600 flex-shrink-0 mt-0.5" />
           <div>
             <div className="text-sm font-semibold text-brand-900">
-              {selectedClient === 'global' ? 'Global firm memory' : `Memory specific to ${clients.find(c => c.id === selectedClient)?.nom}`}
+              {selectedClient === 'global' ? t('Global firm memory', 'Mémoire globale du cabinet') : t(`Memory specific to ${clients.find(c => c.id === selectedClient)?.nom}`, `Mémoire spécifique à ${clients.find(c => c.id === selectedClient)?.nom}`)}
             </div>
             <p className="text-xs text-brand-700 mt-0.5">
               {selectedClient === 'global'
-                ? 'These instructions and preferences apply to all client files in your firm. ComptaMind takes them into account for every action.'
-                : 'This information is specific to this file. ComptaMind consults it automatically before each action on this client.'}
+                ? t('These instructions and preferences apply to all client files in your firm. ComptaMind takes them into account for every action.', 'Ces instructions et préférences s\'appliquent à tous les dossiers clients de votre cabinet. ComptaMind les prend en compte pour chaque action.')
+                : t('This information is specific to this file. ComptaMind consults it automatically before each action on this client.', 'Ces informations sont spécifiques à ce dossier. ComptaMind les consulte automatiquement avant chaque action sur ce client.')}
             </p>
           </div>
         </div>
@@ -93,39 +101,39 @@ export default function MemoryPage() {
         {/* Search */}
         <div className="relative max-w-sm mb-6">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input pl-9" placeholder="Search in memory..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="input pl-9" placeholder={t('Search in memory...', 'Rechercher dans la mémoire...')} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
         {/* Add form */}
         {showAdd && (
           <div className="card p-5 mb-6 border-brand-200 ring-1 ring-brand-100 bg-white">
-            <h3 className="text-sm font-bold text-slate-900 mb-4">New memory entry</h3>
+            <h3 className="text-sm font-bold text-slate-900 mb-4">{t('New memory entry', 'Nouvelle entrée mémoire')}</h3>
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <label className="label">Title</label>
-                  <input className="input" placeholder="e.g.: Invoicing preference"
+                  <label className="label">{t('Title', 'Titre')}</label>
+                  <input className="input" placeholder={t('e.g.: Invoicing preference', 'ex : Préférence de facturation')}
                     value={newMem.titre} onChange={e => setNewMem({...newMem, titre: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Category</label>
+                  <label className="label">{t('Category', 'Catégorie')}</label>
                   <select className="input" value={newMem.categorie} onChange={e => setNewMem({...newMem, categorie: e.target.value})}>
-                    <option value="note">📝 Note</option>
-                    <option value="instruction">⚡ Instruction</option>
-                    <option value="preference">⭐ Preference</option>
+                    <option value="note">📝 {t('Note', 'Note')}</option>
+                    <option value="instruction">⚡ {t('Instruction', 'Instruction')}</option>
+                    <option value="preference">⭐ {t('Preference', 'Préférence')}</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="label">Content</label>
+                <label className="label">{t('Content', 'Contenu')}</label>
                 <textarea className="input resize-none" rows={3}
-                  placeholder="Describe the instruction, preference or information to remember..."
+                  placeholder={t('Describe the instruction, preference or information to remember...', "Décrivez l'instruction, la préférence ou l'information à retenir...")}
                   value={newMem.contenu} onChange={e => setNewMem({...newMem, contenu: e.target.value})} />
               </div>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowAdd(false)} className="btn-secondary text-sm py-2">Cancel</button>
+                <button onClick={() => setShowAdd(false)} className="btn-secondary text-sm py-2">{t('Cancel', 'Annuler')}</button>
                 <button onClick={handleAdd} disabled={!newMem.titre || !newMem.contenu} className="btn-primary text-sm py-2">
-                  <Brain size={14} /> Save to memory
+                  <Brain size={14} /> {t('Save to memory', 'Sauvegarder en mémoire')}
                 </button>
               </div>
             </div>
@@ -136,12 +144,12 @@ export default function MemoryPage() {
         {filtered.length === 0 ? (
           <div className="card p-14 text-center">
             <div className="text-5xl mb-4">🧠</div>
-            <p className="text-slate-600 font-semibold text-lg">No memories saved</p>
+            <p className="text-slate-600 font-semibold text-lg">{t('No memories saved', 'Aucune mémoire enregistrée')}</p>
             <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto">
-              Add instructions, preferences and information to customize ComptaMind's behavior.
+              {t("Add instructions, preferences and information to customize ComptaMind's behavior.", "Ajoutez des instructions, préférences et informations pour personnaliser le comportement de ComptaMind.")}
             </p>
             <button onClick={() => setShowAdd(true)} className="btn-primary mt-5 mx-auto">
-              <Plus size={16} /> Add the first entry
+              <Plus size={16} /> {t('Add the first entry', 'Ajouter la première entrée')}
             </button>
           </div>
         ) : (
@@ -165,7 +173,7 @@ export default function MemoryPage() {
                   <h4 className="font-semibold text-slate-900 mb-2">{mem.titre}</h4>
                   <p className="text-sm text-slate-600 leading-relaxed">{mem.contenu}</p>
                   <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-white/50">
-                    Saved on {new Date(mem.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    {t('Saved on', 'Enregistré le')} {new Date(mem.createdAt).toLocaleDateString(t('en-US', 'fr-FR'), { day: '2-digit', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               )

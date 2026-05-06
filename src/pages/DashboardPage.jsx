@@ -13,6 +13,7 @@ import {
 } from '../lib/airtable-schema'
 import { EXCLUDED_CLIENT_IDS } from '../hooks/useAirtableClients'
 import { useAppStore } from '../store/useAppStore'
+import { useT } from '../hooks/useT'
 
 const cabinetName = import.meta.env.VITE_CABINET_NAME || 'votre cabinet'
 
@@ -101,6 +102,7 @@ function ClientCard({ record, onClick }) {
 // ─── Activity Item ────────────────────────────────────────────────────────────
 
 function ActivityItem({ record }) {
+  const t = useT()
   const fields = record.fields || {}
   const name = fields['Task Name / Reference'] || fields['Name'] || record.id
   const type = fields['Task Type'] || ''
@@ -112,13 +114,13 @@ function ActivityItem({ record }) {
   const isProgress = status.includes('progress') || status.includes('cours')
 
   const typeLabel = {
-    revision_balance: 'Balance review',
-    saisie_factures: 'Invoice entry',
-    revision_fournisseur: 'Supplier review',
-    revision_client: 'Client review',
-    relance_clients: 'Client reminders',
-    rapport: 'Report',
-    rapprochement_bancaire: 'Reconciliation',
+    revision_balance: t('Balance review', 'Révision balance'),
+    saisie_factures: t('Invoice entry', 'Saisie factures'),
+    revision_fournisseur: t('Supplier review', 'Révision fournisseur'),
+    revision_client: t('Client review', 'Révision client'),
+    relance_clients: t('Client reminders', 'Relances clients'),
+    rapport: t('Report', 'Rapport'),
+    rapprochement_bancaire: t('Reconciliation', 'Rapprochement bancaire'),
   }
 
   return (
@@ -135,9 +137,9 @@ function ActivityItem({ record }) {
         <p className="text-sm font-medium text-slate-700 truncate">{typeLabel[type] || name}</p>
         {date && <p className="text-xs text-slate-400">{new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>}
       </div>
-      {isDone && <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">Done</span>}
-      {isError && <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded-full flex-shrink-0">Error</span>}
-      {isProgress && <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">In progress</span>}
+      {isDone && <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">{t('Done', 'Terminé')}</span>}
+      {isError && <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded-full flex-shrink-0">{t('Error', 'Erreur')}</span>}
+      {isProgress && <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0">{t('In progress', 'En cours')}</span>}
     </div>
   )
 }
@@ -147,13 +149,14 @@ function ActivityItem({ record }) {
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { pendingApprovals } = useAppStore()
+  const t = useT()
   const [clients, setClients] = useState([])
   const [queue, setQueue] = useState([])
   const [alertes, setAlertes] = useState([])
   const [loading, setLoading] = useState(true)
 
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const greeting = hour < 12 ? t('Good morning', 'Bonjour') : hour < 18 ? t('Good afternoon', 'Bon après-midi') : t('Good evening', 'Bonsoir')
 
   const load = () => {
     setLoading(true)
@@ -196,11 +199,11 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <button onClick={load} className="btn-ghost text-sm flex items-center gap-1.5">
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-              Refresh
+              {t('Refresh', 'Actualiser')}
             </button>
             <button onClick={() => navigate('/comptamind')} className="btn-primary flex items-center gap-2">
               <Bot size={15} />
-              Launch ComptaMind AI
+              {t('Launch ComptaMind AI', 'Lancer ComptaMind IA')}
             </button>
           </div>
         }
@@ -215,9 +218,9 @@ export default function DashboardPage() {
           </div>
           <div className="flex-1">
             <p className="font-semibold text-slate-900 text-sm mb-1">
-              {loading ? 'Analyse en cours…' : allGood
-                ? `All good — ${clients.length} active client${clients.length > 1 ? 's' : ''}, no anomalies detected.`
-                : `${openAlertes.length + errorTasks.length + pendingApprovals.length} item${openAlertes.length + errorTasks.length + pendingApprovals.length > 1 ? 's' : ''} need${openAlertes.length + errorTasks.length + pendingApprovals.length > 1 ? '' : 's'} your attention today.`
+              {loading ? t('Analyzing…', 'Analyse en cours…') : allGood
+                ? t(`All good — ${clients.length} active client${clients.length > 1 ? 's' : ''}, no anomalies detected.`, `Tout est en ordre — ${clients.length} client${clients.length > 1 ? 's' : ''} actif${clients.length > 1 ? 's' : ''}, aucune anomalie détectée.`)
+                : t(`${openAlertes.length + errorTasks.length + pendingApprovals.length} item${openAlertes.length + errorTasks.length + pendingApprovals.length > 1 ? 's' : ''} need${openAlertes.length + errorTasks.length + pendingApprovals.length > 1 ? '' : 's'} your attention today.`, `${openAlertes.length + errorTasks.length + pendingApprovals.length} élément${openAlertes.length + errorTasks.length + pendingApprovals.length > 1 ? 's' : ''} requièrent votre attention aujourd'hui.`)
               }
             </p>
             <p className="text-xs text-slate-500">
@@ -226,17 +229,17 @@ export default function DashboardPage() {
             </p>
           </div>
           <button onClick={() => navigate('/comptamind')} className="flex-shrink-0 text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
-            Open AI <ArrowRight size={12} />
+            {t('Open AI', 'Ouvrir IA')} <ArrowRight size={12} />
           </button>
         </div>
 
         {/* ── Priority Actions ── */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Priorities</h2>
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">{t('Priorities', 'Priorités')}</h2>
             {allGood && !loading && (
               <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
-                <CheckCircle size={13} /> No action required
+                <CheckCircle size={13} /> {t('No action required', 'Aucune action requise')}
               </span>
             )}
           </div>
@@ -247,12 +250,12 @@ export default function DashboardPage() {
               iconColor={openAlertes.length > 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}
               bg={openAlertes.length > 0 ? 'bg-red-50/60' : 'bg-white'}
               border={openAlertes.length > 0 ? 'border-red-200' : 'border-slate-100'}
-              title={openAlertes.length > 0 ? `${openAlertes.length} anomal${openAlertes.length > 1 ? 'ies' : 'y'} detected` : 'No anomalies'}
-              description={openAlertes.length > 0 ? 'Inconsistencies were detected in your files. Review and fix them now.' : 'All your files are compliant. No inconsistencies detected.'}
+              title={openAlertes.length > 0 ? t(`${openAlertes.length} anomal${openAlertes.length > 1 ? 'ies' : 'y'} detected`, `${openAlertes.length} anomalie${openAlertes.length > 1 ? 's' : ''} détectée${openAlertes.length > 1 ? 's' : ''}`) : t('No anomalies', 'Aucune anomalie')}
+              description={openAlertes.length > 0 ? t('Inconsistencies were detected in your files. Review and fix them now.', 'Des incohérences ont été détectées dans vos dossiers. Révisez et corrigez-les.') : t('All your files are compliant. No inconsistencies detected.', 'Tous vos dossiers sont conformes. Aucune incohérence détectée.')}
               count={openAlertes.length}
-              primaryCta={openAlertes.length > 0 ? 'Review' : 'See reports'}
+              primaryCta={openAlertes.length > 0 ? t('Review', 'Réviser') : t('See reports', 'Voir rapports')}
               primaryCtaIcon={openAlertes.length > 0 ? Eye : Eye}
-              secondaryCta={openAlertes.length > 0 ? 'Fix with AI' : null}
+              secondaryCta={openAlertes.length > 0 ? t('Fix with AI', 'Corriger avec IA') : null}
               secondaryCtaIcon={openAlertes.length > 0 ? Wrench : null}
               onPrimary={() => navigate('/rapports')}
               onSecondary={() => navigate('/comptamind')}
@@ -263,12 +266,12 @@ export default function DashboardPage() {
               iconColor={errorTasks.length > 0 ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}
               bg={errorTasks.length > 0 ? 'bg-amber-50/60' : 'bg-white'}
               border={errorTasks.length > 0 ? 'border-amber-200' : 'border-slate-100'}
-              title={errorTasks.length > 0 ? `${errorTasks.length} failed task${errorTasks.length > 1 ? 's' : ''}` : 'Queue error-free'}
-              description={errorTasks.length > 0 ? 'Some ComptaMind tasks failed. Check the details and rerun.' : 'All recent tasks completed successfully.'}
+              title={errorTasks.length > 0 ? t(`${errorTasks.length} failed task${errorTasks.length > 1 ? 's' : ''}`, `${errorTasks.length} tâche${errorTasks.length > 1 ? 's' : ''} en erreur`) : t('Queue error-free', 'File sans erreur')}
+              description={errorTasks.length > 0 ? t('Some ComptaMind tasks failed. Check the details and rerun.', 'Certaines tâches ComptaMind ont échoué. Consultez les détails et relancez.') : t('All recent tasks completed successfully.', 'Toutes les tâches récentes ont réussi.')}
               count={errorTasks.length}
-              primaryCta={errorTasks.length > 0 ? 'See details' : 'See activity'}
+              primaryCta={errorTasks.length > 0 ? t('See details', 'Voir détails') : t('See activity', "Voir l'activité")}
               primaryCtaIcon={Eye}
-              secondaryCta={errorTasks.length > 0 ? 'Rerun' : null}
+              secondaryCta={errorTasks.length > 0 ? t('Rerun', 'Relancer') : null}
               secondaryCtaIcon={errorTasks.length > 0 ? RotateCcw : null}
               onPrimary={() => navigate('/rapports')}
               onSecondary={() => navigate('/comptamind')}
@@ -279,12 +282,12 @@ export default function DashboardPage() {
               iconColor={pendingApprovals.length > 0 ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}
               bg={pendingApprovals.length > 0 ? 'bg-blue-50/60' : 'bg-white'}
               border={pendingApprovals.length > 0 ? 'border-blue-200' : 'border-slate-100'}
-              title={pendingApprovals.length > 0 ? `${pendingApprovals.length} approval${pendingApprovals.length > 1 ? 's' : ''} required` : 'Fully automated'}
-              description={pendingApprovals.length > 0 ? 'ComptaMind is waiting for your approval. Approve or reject each action.' : 'ComptaMind is running autonomously. No decision required.'}
+              title={pendingApprovals.length > 0 ? t(`${pendingApprovals.length} approval${pendingApprovals.length > 1 ? 's' : ''} required`, `${pendingApprovals.length} approbation${pendingApprovals.length > 1 ? 's' : ''} requise${pendingApprovals.length > 1 ? 's' : ''}`) : t('Fully automated', 'Entièrement automatisé')}
+              description={pendingApprovals.length > 0 ? t('ComptaMind is waiting for your approval. Approve or reject each action.', 'ComptaMind attend votre approbation. Approuvez ou rejetez chaque action.') : t('ComptaMind is running autonomously. No decision required.', 'ComptaMind fonctionne en autonomie. Aucune décision requise.')}
               count={pendingApprovals.length}
-              primaryCta={pendingApprovals.length > 0 ? 'Approve' : 'Manage autonomy'}
+              primaryCta={pendingApprovals.length > 0 ? t('Approve', 'Approuver') : t('Manage autonomy', "Gérer l'autonomie")}
               primaryCtaIcon={pendingApprovals.length > 0 ? CheckCircle : Zap}
-              secondaryCta={pendingApprovals.length > 0 ? 'Auto-resolve' : null}
+              secondaryCta={pendingApprovals.length > 0 ? t('Auto-resolve', 'Résolution auto') : null}
               secondaryCtaIcon={pendingApprovals.length > 0 ? Zap : null}
               onPrimary={() => navigate('/autonomie')}
               onSecondary={() => navigate('/autorisations')}
@@ -296,30 +299,30 @@ export default function DashboardPage() {
         <div className="grid grid-cols-4 gap-4">
           {[
             {
-              label: 'Active clients',
+              label: t('Active clients', 'Clients actifs'),
               value: loading ? '…' : clients.length,
-              sub: 'Connected to Airtable',
+              sub: t('Connected to Airtable', 'Connecté à Airtable'),
               icon: Building2,
               color: 'text-brand-600 bg-brand-50',
             },
             {
-              label: 'Tasks executed',
+              label: t('Tasks executed', 'Tâches exécutées'),
               value: loading ? '…' : queue.length,
-              sub: 'Since the beginning',
+              sub: t('Since the beginning', 'Depuis le début'),
               icon: CheckCircle,
               color: 'text-emerald-600 bg-emerald-50',
             },
             {
-              label: 'Open anomalies',
+              label: t('Open anomalies', 'Anomalies ouvertes'),
               value: loading ? '…' : openAlertes.length,
-              sub: openAlertes.length > 0 ? 'To handle' : 'All good',
+              sub: openAlertes.length > 0 ? t('To handle', 'À traiter') : t('All good', 'Tout est bon'),
               icon: AlertTriangle,
               color: openAlertes.length > 0 ? 'text-red-600 bg-red-50' : 'text-slate-400 bg-slate-50',
             },
             {
-              label: 'ComptaMind AI',
-              value: 'Active',
-              sub: 'VPS + Airtable connected',
+              label: t('ComptaMind AI', 'ComptaMind IA'),
+              value: t('Active', 'Actif'),
+              sub: t('VPS + Airtable connected', 'VPS + Airtable connectés'),
               icon: Bot,
               color: 'text-violet-600 bg-violet-50',
             },
@@ -344,28 +347,28 @@ export default function DashboardPage() {
           <div className="col-span-3 card p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-sm font-bold text-slate-900">ComptaMind Activity</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Latest tasks executed</p>
+                <h2 className="text-sm font-bold text-slate-900">{t('ComptaMind Activity', 'Activité ComptaMind')}</h2>
+                <p className="text-xs text-slate-400 mt-0.5">{t('Latest tasks executed', 'Dernières tâches exécutées')}</p>
               </div>
               <button onClick={() => navigate('/rapports')} className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
-                See all <ChevronRight size={12} />
+                {t('See all', 'Voir tout')} <ChevronRight size={12} />
               </button>
             </div>
 
             {loading && (
               <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
                 <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
-                Loading…
+                {t('Loading…', 'Chargement…')}
               </div>
             )}
 
             {!loading && queue.length === 0 && (
               <div className="text-center py-10">
                 <Bot size={28} className="text-slate-200 mx-auto mb-3" />
-                <p className="text-slate-400 text-sm font-medium">No tasks executed yet</p>
-                <p className="text-slate-400 text-xs mt-1 mb-4">Launch your first task from ComptaMind AI</p>
+                <p className="text-slate-400 text-sm font-medium">{t('No tasks executed yet', 'Aucune tâche exécutée')}</p>
+                <p className="text-slate-400 text-xs mt-1 mb-4">{t('Launch your first task from ComptaMind AI', 'Lancez votre première tâche depuis ComptaMind IA')}</p>
                 <button onClick={() => navigate('/comptamind')} className="btn-primary text-xs py-2 mx-auto">
-                  <Play size={13} /> Get started
+                  <Play size={13} /> {t('Get started', 'Commencer')}
                 </button>
               </div>
             )}
@@ -377,27 +380,27 @@ export default function DashboardPage() {
           <div className="col-span-2 card p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Clients</h2>
+                <h2 className="text-sm font-bold text-slate-900">{t('Clients', 'Clients')}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {loading ? 'Loading…' : `${clients.length} client${clients.length > 1 ? 's' : ''}`}
+                  {loading ? t('Loading…', 'Chargement…') : `${clients.length} client${clients.length > 1 ? 's' : ''}`}
                 </p>
               </div>
               <button onClick={() => navigate('/clients')} className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
-                All <ChevronRight size={12} />
+                {t('All', 'Tous')} <ChevronRight size={12} />
               </button>
             </div>
 
             {loading && (
               <div className="flex items-center gap-2 text-slate-400 text-sm">
                 <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
-                Connecting to Airtable…
+                {t('Connecting to Airtable…', 'Connexion à Airtable…')}
               </div>
             )}
 
             {!loading && clients.length === 0 && (
               <div className="text-center py-8">
                 <Building2 size={28} className="text-slate-200 mx-auto mb-2" />
-                <p className="text-slate-400 text-sm">No clients</p>
+                <p className="text-slate-400 text-sm">{t('No clients', 'Aucun client')}</p>
               </div>
             )}
 
@@ -409,7 +412,7 @@ export default function DashboardPage() {
 
             {clients.length > 5 && (
               <button onClick={() => navigate('/clients')} className="w-full mt-3 py-2 text-xs font-semibold text-slate-500 hover:text-brand-600 rounded-lg hover:bg-brand-50 transition-colors flex items-center justify-center gap-1">
-                +{clients.length - 5} more clients <ArrowRight size={11} />
+                +{clients.length - 5} {t('more clients', 'clients supplémentaires')} <ArrowRight size={11} />
               </button>
             )}
 
@@ -418,7 +421,7 @@ export default function DashboardPage() {
                 onClick={() => navigate('/comptamind')}
                 className="w-full mt-3 py-2.5 rounded-xl text-xs font-semibold gradient-brand text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
               >
-                <Bot size={13} /> Launch an AI task
+                <Bot size={13} /> {t('Launch an AI task', 'Lancer une tâche IA')}
               </button>
             )}
           </div>

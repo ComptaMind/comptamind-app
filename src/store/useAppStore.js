@@ -146,6 +146,10 @@ export const useAppStore = create((set, get) => ({
   // Pending approvals
   pendingApprovals: mockPendingApprovals,
 
+  // Language
+  language: 'fr',
+  setLanguage: (lang) => set({ language: lang }),
+
   // Actions auth Supabase
   initAuth: async () => {
     const { data: { session } } = await supabase.auth.getSession()

@@ -3,10 +3,11 @@ import { Shield, ChevronDown, ChevronRight, RotateCcw, User, Lock, AlertTriangle
 import Header from '../components/layout/Header'
 import { useAppStore } from '../store/useAppStore'
 import { useAirtableClients } from '../hooks/useAirtableClients'
+import { useT } from '../hooks/useT'
 
 // ─── Définitions des actions ──────────────────────────────────────────────────
 
-const actionDefinitions = [
+const actionDefinitionsEn = [
   {
     group: 'Entry & Journal',
     groupIcon: '📝',
@@ -51,9 +52,54 @@ const actionDefinitions = [
   },
 ]
 
+const actionDefinitionsFr = [
+  {
+    group: 'Saisie & Journal',
+    groupIcon: '📝',
+    items: [
+      { key: 'saisie_mensuelle', label: 'Saisie mensuelle', description: 'Récupère et saisit automatiquement les écritures depuis les relevés bancaires et factures', icon: '📝', risk: 'faible', outcome: 'Comptabilité à jour chaque mois' },
+      { key: 'creation_ecriture', label: 'Créer des écritures', description: "Crée des écritures comptables spécifiques ne provenant pas de documents", icon: '✍️', risk: 'moyen', outcome: 'Flexibilité pour les opérations diverses' },
+      { key: 'modification_ecriture', label: 'Modifier des écritures', description: 'Corrige les écritures comptables existantes', icon: '✏️', risk: 'moyen', outcome: 'Correction rapide des erreurs de saisie' },
+      { key: 'suppression_ecriture', label: 'Supprimer des écritures', description: 'Supprime définitivement des écritures comptables', icon: '🗑️', risk: 'élevé', outcome: 'Action irréversible — confirmation requise' },
+    ]
+  },
+  {
+    group: 'Révision & Contrôle',
+    groupIcon: '🔍',
+    items: [
+      { key: 'revision_balance', label: 'Révision balance', description: 'Analyse la balance générale, détecte les anomalies et incohérences', icon: '🔍', risk: 'faible', outcome: 'Dossier conforme avant clôture' },
+      { key: 'export_fec', label: 'Export FEC', description: "Génère et exporte le fichier des écritures comptables (FEC)", icon: '📤', risk: 'faible', outcome: 'FEC disponible à la demande' },
+    ]
+  },
+  {
+    group: 'Clôture annuelle',
+    groupIcon: '🔒',
+    items: [
+      { key: 'cloture_exercice', label: "Clôture d'exercice", description: 'Saisit les ajustements de fin d\'exercice, provisions et écritures de clôture définitives', icon: '🔒', risk: 'élevé', outcome: 'Action irréversible — votre approbation est requise' },
+    ]
+  },
+  {
+    group: 'Facturation',
+    groupIcon: '🧾',
+    items: [
+      { key: 'creation_facture', label: 'Créer des factures', description: 'Génère de nouvelles factures clients dans Pennylane', icon: '🧾', risk: 'moyen', outcome: 'Facturation automatique selon les règles définies' },
+    ]
+  },
+  {
+    group: 'Relances clients',
+    groupIcon: '📬',
+    items: [
+      { key: 'relances_niveau1', label: 'Relance douce', description: 'Rappel poli pour les factures en retard (< 30 jours)', icon: '💬', risk: 'faible', outcome: 'Recouvrement automatique des créances courantes' },
+      { key: 'relances_niveau2', label: 'Mise en demeure', description: 'Rappel ferme pour les factures en retard (30–60 jours)', icon: '📬', risk: 'moyen', outcome: 'Accélère le recouvrement sans intervention manuelle' },
+      { key: 'relances_niveau3', label: 'Relance juridique', description: 'Mise en demeure formelle avec mention de poursuites judiciaires', icon: '⚖️', risk: 'élevé', outcome: "Engagement juridique — votre accord est indispensable" },
+      { key: 'envoi_email_client', label: 'Emails clients', description: 'Emails directs envoyés au nom de votre cabinet', icon: '✉️', risk: 'moyen', outcome: 'Communication client automatisée' },
+    ]
+  },
+]
+
 // ─── Config niveaux ───────────────────────────────────────────────────────────
 
-const levelConfig = {
+const levelConfigEn = {
   autonome: {
     label: 'Automatic',
     shortLabel: 'Auto',
@@ -92,6 +138,45 @@ const levelConfig = {
   },
 }
 
+const levelConfigFr = {
+  autonome: {
+    label: 'Automatique',
+    shortLabel: 'Auto',
+    desc: 'ComptaMind agit seul, sans vous déranger',
+    icon: CheckCircle,
+    ring: 'ring-2 ring-emerald-500',
+    activeBg: 'bg-emerald-500',
+    activeText: 'text-white',
+    badge: 'bg-emerald-100 text-emerald-700',
+    dot: 'bg-emerald-500',
+    riskLabel: 'Risque faible',
+  },
+  approbation: {
+    label: 'Approbation',
+    shortLabel: 'Approbation',
+    desc: 'ComptaMind demande votre accord avant d\'agir',
+    icon: AlertTriangle,
+    ring: 'ring-2 ring-amber-400',
+    activeBg: 'bg-amber-400',
+    activeText: 'text-white',
+    badge: 'bg-amber-100 text-amber-700',
+    dot: 'bg-amber-400',
+    riskLabel: 'Risque moyen',
+  },
+  bloqué: {
+    label: 'Bloqué',
+    shortLabel: 'Bloqué',
+    desc: 'ComptaMind ne peut jamais effectuer cette action',
+    icon: Lock,
+    ring: 'ring-2 ring-red-400',
+    activeBg: 'bg-red-400',
+    activeText: 'text-white',
+    badge: 'bg-red-100 text-red-700',
+    dot: 'bg-red-400',
+    riskLabel: 'Risque élevé',
+  },
+}
+
 const riskStyle = {
   faible: { dot: 'bg-emerald-400', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-100' },
   moyen:  { dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-100' },
@@ -101,6 +186,8 @@ const riskStyle = {
 // ─── Toggle de niveau ─────────────────────────────────────────────────────────
 
 function LevelToggle({ value, onChange, compact = false }) {
+  const t = useT()
+  const levelConfig = t(levelConfigEn, levelConfigFr)
   const levels = ['autonome', 'approbation', 'bloqué']
   return (
     <div className={`flex items-center gap-1 bg-slate-100 rounded-xl p-1 ${compact ? 'text-xs' : ''}`}>
@@ -132,6 +219,8 @@ function LevelToggle({ value, onChange, compact = false }) {
 // ─── Ligne d'action ───────────────────────────────────────────────────────────
 
 function ActionRow({ actionKey, definition, permission, onChangeGlobal, clientOverride, onChangeClient, clients }) {
+  const t = useT()
+  const levelConfig = t(levelConfigEn, levelConfigFr)
   const [expanded, setExpanded] = useState(false)
   const conf = levelConfig[permission]
   const Icon = conf.icon
@@ -148,7 +237,7 @@ function ActionRow({ actionKey, definition, permission, onChangeGlobal, clientOv
             <span className="text-sm font-semibold text-slate-900">{definition.label}</span>
             <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${rs.bg} ${rs.text} ${rs.border}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${rs.dot}`} />
-              {definition.risk === 'faible' ? 'Low risk' : definition.risk === 'moyen' ? 'Medium risk' : 'High risk'}
+              {definition.risk === 'faible' ? t('Low risk', 'Risque faible') : definition.risk === 'moyen' ? t('Medium risk', 'Risque moyen') : t('High risk', 'Risque élevé')}
             </span>
           </div>
           <p className="text-xs text-slate-400 truncate">{definition.outcome}</p>
@@ -185,8 +274,8 @@ function ActionRow({ actionKey, definition, permission, onChangeGlobal, clientOv
         <div className="border-t border-slate-100 bg-slate-50/60 rounded-b-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <User size={12} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500">Rules per file</span>
-            <span className="text-xs text-slate-400">(overrides the global rule)</span>
+            <span className="text-xs font-semibold text-slate-500">{t('Rules per file', 'Règles par dossier')}</span>
+            <span className="text-xs text-slate-400">{t('(overrides the global rule)', '(remplace la règle globale)')}</span>
           </div>
           <div className="space-y-2">
             {clients.map(client => {
@@ -225,6 +314,9 @@ function ActionRow({ actionKey, definition, permission, onChangeGlobal, clientOv
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function AutorisationsPage() {
+  const t = useT()
+  const levelConfig = t(levelConfigEn, levelConfigFr)
+  const actionDefinitions = t(actionDefinitionsEn, actionDefinitionsFr)
   const { permissions, clientPermissions, setPermission, setClientPermission } = useAppStore()
   const { clients } = useAirtableClients()
 
@@ -239,8 +331,8 @@ export default function AutorisationsPage() {
   const riskSummary = [
     {
       level: 'autonome',
-      label: 'Automatic',
-      sublabel: 'ComptaMind acts alone',
+      label: t('Automatic', 'Automatique'),
+      sublabel: t('ComptaMind acts alone', 'ComptaMind agit seul'),
       count: counts.autonome || 0,
       icon: CheckCircle,
       bg: 'bg-emerald-50',
@@ -250,8 +342,8 @@ export default function AutorisationsPage() {
     },
     {
       level: 'approbation',
-      label: 'Approval required',
-      sublabel: 'Your agreement is requested',
+      label: t('Approval required', 'Approbation requise'),
+      sublabel: t('Your agreement is requested', 'Votre accord est demandé'),
       count: counts.approbation || 0,
       icon: AlertTriangle,
       bg: 'bg-amber-50',
@@ -261,8 +353,8 @@ export default function AutorisationsPage() {
     },
     {
       level: 'bloqué',
-      label: 'Blocked',
-      sublabel: 'Action not allowed',
+      label: t('Blocked', 'Bloqué'),
+      sublabel: t('Action not allowed', 'Action non autorisée'),
       count: counts['bloqué'] || 0,
       icon: Lock,
       bg: 'bg-red-50',
@@ -275,8 +367,8 @@ export default function AutorisationsPage() {
   return (
     <div>
       <Header
-        title="ComptaMind Permissions"
-        subtitle="Define precisely what the AI can do alone, with your approval, or never"
+        title={t('ComptaMind Permissions', 'Autorisations ComptaMind')}
+        subtitle={t('Define precisely what the AI can do alone, with your approval, or never', "Définissez précisément ce que l'IA peut faire seule, avec votre approbation, ou jamais")}
       />
 
       <div className="p-8 max-w-5xl space-y-8">
@@ -304,7 +396,7 @@ export default function AutorisationsPage() {
         <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Info size={14} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">How it works</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('How it works', 'Comment ça fonctionne')}</span>
           </div>
           <div className="grid grid-cols-3 gap-4">
             {Object.entries(levelConfig).map(([key, conf]) => {

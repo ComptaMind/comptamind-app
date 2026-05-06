@@ -8,6 +8,7 @@ import Header from '../components/layout/Header'
 import { listRecords, getRecord } from '../lib/airtable'
 import { runTask as callVPS, fetchLatestReport } from '../lib/api'
 import { EXCLUDED_CLIENT_IDS } from '../hooks/useAirtableClients'
+import { useT } from '../hooks/useT'
 import {
   TBL_CLIENTS, TBL_QUEUE,
   FLD_CLIENT_NAME, FLD_TASK_STATUS, FLD_TASK_LOGS
@@ -27,7 +28,7 @@ const TACHE_MAP = {
   class5:        'revision_class_5',
 }
 
-const TASK_LABELS = {
+const TASK_LABELS_EN = {
   saisie:        'Invoice entry',
   revision:      'Balance sheet review',
   rev_fourn:     'Supplier review',
@@ -39,81 +40,40 @@ const TASK_LABELS = {
   class5:        'Class 5 review',
 }
 
+const TASK_LABELS_FR = {
+  saisie:        'Saisie factures',
+  revision:      'Révision balance',
+  rev_fourn:     'Révision fournisseur',
+  rev_client:    'Révision client',
+  rapport:       'Rapport',
+  rapprochement: 'Rapprochement bancaire',
+  relances:      'Relances clients',
+  class4:        'Révision classe 4',
+  class5:        'Révision classe 5',
+}
+
 // ─── Actions copilot ──────────────────────────────────────────────────────────
 
-const COPILOT_ACTIONS = [
-  {
-    id: 'saisie',
-    icon: '📝',
-    label: 'Invoice entry',
-    outcome: 'Process pending documents and update the accounting records',
-    detail: 'Fetches Pennylane invoices and automatically posts them to the correct accounts.',
-    accent: 'blue',
-    priority: true,
-  },
-  {
-    id: 'revision',
-    icon: '🔍',
-    label: 'Balance sheet review',
-    outcome: 'Review accounts 1 to 7 and detect anomalies',
-    detail: 'Analyzes the general balance, checks ledger matching and flags inconsistencies.',
-    accent: 'purple',
-    priority: true,
-  },
-  {
-    id: 'rev_fourn',
-    icon: '📋',
-    label: 'Supplier review',
-    outcome: 'Check 401 balances, accrued expenses and payables',
-    detail: 'Reviews the supplier cycle: auxiliary balance, accrued invoices, cut-off.',
-    accent: 'indigo',
-    priority: false,
-  },
-  {
-    id: 'rapprochement',
-    icon: '🏦',
-    label: 'Bank reconciliation',
-    outcome: 'Match unreconciled transactions and secure cash position',
-    detail: 'Compares bank statements with accounting entries and reconciles transactions.',
-    accent: 'emerald',
-    priority: false,
-  },
-  {
-    id: 'rapport',
-    icon: '📊',
-    label: 'Situation report',
-    outcome: 'Generate a full report on the client file status',
-    detail: 'Summary of the accounting situation, key indicators and points of attention.',
-    accent: 'teal',
-    priority: false,
-  },
-  {
-    id: 'relances',
-    icon: '📬',
-    label: 'Client reminders',
-    outcome: 'Identify and follow up on overdue receivables',
-    detail: 'Analyzes the aged client balance and prepares reminders based on due dates.',
-    accent: 'amber',
-    priority: false,
-  },
-  {
-    id: 'class4',
-    icon: '🔎',
-    label: 'Class 4 review',
-    outcome: 'Review third-party accounts 40x, 41x, 42x, 43x, 44x, 45x',
-    detail: 'Detects anomalies on third-party accounts: abnormal balances, missing matching, VAT discrepancies.',
-    accent: 'purple',
-    priority: true,
-  },
-  {
-    id: 'class5',
-    icon: '🏦',
-    label: 'Class 5 review',
-    outcome: 'Review treasury accounts 511, 512, 530, 580',
-    detail: 'Detects treasury anomalies: unreconciled transactions, unsettled internal transfers, credit balance in cash.',
-    accent: 'emerald',
-    priority: false,
-  },
+const COPILOT_ACTIONS_EN = [
+  { id: 'saisie', icon: '📝', label: 'Invoice entry', outcome: 'Process pending documents and update the accounting records', detail: 'Fetches Pennylane invoices and automatically posts them to the correct accounts.', accent: 'blue', priority: true },
+  { id: 'revision', icon: '🔍', label: 'Balance sheet review', outcome: 'Review accounts 1 to 7 and detect anomalies', detail: 'Analyzes the general balance, checks ledger matching and flags inconsistencies.', accent: 'purple', priority: true },
+  { id: 'rev_fourn', icon: '📋', label: 'Supplier review', outcome: 'Check 401 balances, accrued expenses and payables', detail: 'Reviews the supplier cycle: auxiliary balance, accrued invoices, cut-off.', accent: 'indigo', priority: false },
+  { id: 'rapprochement', icon: '🏦', label: 'Bank reconciliation', outcome: 'Match unreconciled transactions and secure cash position', detail: 'Compares bank statements with accounting entries and reconciles transactions.', accent: 'emerald', priority: false },
+  { id: 'rapport', icon: '📊', label: 'Situation report', outcome: 'Generate a full report on the client file status', detail: 'Summary of the accounting situation, key indicators and points of attention.', accent: 'teal', priority: false },
+  { id: 'relances', icon: '📬', label: 'Client reminders', outcome: 'Identify and follow up on overdue receivables', detail: 'Analyzes the aged client balance and prepares reminders based on due dates.', accent: 'amber', priority: false },
+  { id: 'class4', icon: '🔎', label: 'Class 4 review', outcome: 'Review third-party accounts 40x, 41x, 42x, 43x, 44x, 45x', detail: 'Detects anomalies on third-party accounts: abnormal balances, missing matching, VAT discrepancies.', accent: 'purple', priority: true },
+  { id: 'class5', icon: '🏦', label: 'Class 5 review', outcome: 'Review treasury accounts 511, 512, 530, 580', detail: 'Detects treasury anomalies: unreconciled transactions, unsettled internal transfers, credit balance in cash.', accent: 'emerald', priority: false },
+]
+
+const COPILOT_ACTIONS_FR = [
+  { id: 'saisie', icon: '📝', label: 'Saisie factures', outcome: 'Traiter les documents en attente et mettre à jour la comptabilité', detail: 'Récupère les factures Pennylane et les saisit automatiquement sur les bons comptes.', accent: 'blue', priority: true },
+  { id: 'revision', icon: '🔍', label: 'Révision balance', outcome: 'Réviser les comptes 1 à 7 et détecter les anomalies', detail: 'Analyse la balance générale, vérifie le lettrage et signale les incohérences.', accent: 'purple', priority: true },
+  { id: 'rev_fourn', icon: '📋', label: 'Révision fournisseur', outcome: 'Vérifier les soldes 401, FNP et dettes fournisseurs', detail: 'Révise le cycle fournisseur : balance auxiliaire, factures non parvenues, cut-off.', accent: 'indigo', priority: false },
+  { id: 'rapprochement', icon: '🏦', label: 'Rapprochement bancaire', outcome: 'Lettrer les opérations non rapprochées et sécuriser la trésorerie', detail: 'Compare les relevés bancaires avec les écritures comptables et rapproche les transactions.', accent: 'emerald', priority: false },
+  { id: 'rapport', icon: '📊', label: 'Rapport de situation', outcome: "Générer un rapport complet sur l'état du dossier client", detail: "Synthèse de la situation comptable, indicateurs clés et points d'attention.", accent: 'teal', priority: false },
+  { id: 'relances', icon: '📬', label: 'Relances clients', outcome: 'Identifier et relancer les créances en retard', detail: 'Analyse la balance âgée clients et prépare les relances selon les échéances.', accent: 'amber', priority: false },
+  { id: 'class4', icon: '🔎', label: 'Révision classe 4', outcome: 'Réviser les comptes de tiers 40x, 41x, 42x, 43x, 44x, 45x', detail: 'Détecte les anomalies sur comptes de tiers : soldes anormaux, lettrage manquant, écarts TVA.', accent: 'purple', priority: true },
+  { id: 'class5', icon: '🏦', label: 'Révision classe 5', outcome: 'Réviser les comptes de trésorerie 511, 512, 530, 580', detail: 'Détecte les anomalies de trésorerie : opérations non rapprochées, virements internes non soldés, solde créditeur en caisse.', accent: 'emerald', priority: false },
 ]
 
 const accentStyles = {
@@ -156,6 +116,8 @@ function downloadMarkdown(content, filename) {
 // ─── AI Copilot Panel ─────────────────────────────────────────────────────────
 
 function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
+  const t = useT()
+  const COPILOT_ACTIONS = t(COPILOT_ACTIONS_EN, COPILOT_ACTIONS_FR)
   const [expandedId, setExpandedId] = useState(null)
 
   if (!clientName) {
@@ -165,9 +127,9 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
           <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4">
             <Sparkles size={24} className="text-white" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 mb-2">Select a client to get started</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">{t('Select a client to get started', 'Sélectionnez un client pour commencer')}</h2>
           <p className="text-sm text-slate-500 mb-5 max-w-md mx-auto">
-            ComptaMind will analyze the client and suggest priority actions: entry, review, report, reminders.
+            {t('ComptaMind will analyze the client and suggest priority actions: entry, review, report, reminders.', 'ComptaMind analysera le client et proposera des actions prioritaires : saisie, révision, rapport, relances.')}
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             {COPILOT_ACTIONS.slice(0, 4).map(a => (
@@ -190,10 +152,10 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
         </div>
         <div className="flex-1">
           <p className="text-sm font-bold text-slate-900">
-            Actions disponibles pour <span className="text-brand-600">{clientName}</span>
-            <span className="ml-2 text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Exercice {clientExercice}</span>
+            {t('Available actions for', 'Actions disponibles pour')} <span className="text-brand-600">{clientName}</span>
+            <span className="ml-2 text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{t('Year', 'Exercice')} {clientExercice}</span>
           </p>
-          <p className="text-xs text-slate-500">Click <strong>Apply</strong> to launch an action, or use the text box below for a custom instruction.</p>
+          <p className="text-xs text-slate-500">{t('Click', 'Cliquez sur')} <strong>{t('Apply', 'Appliquer')}</strong> {t('to launch an action, or use the text box below for a custom instruction.', 'pour lancer une action, ou utilisez la zone de texte pour une instruction personnalisée.')}</p>
         </div>
       </div>
 
@@ -210,7 +172,7 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
                   <div>
                     <p className="text-xs font-bold text-slate-900">{action.label}</p>
                     {action.priority && (
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${s.badge}`}>Recommended</span>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${s.badge}`}>{t('Recommended', 'Recommandé')}</span>
                     )}
                   </div>
                 </div>
@@ -230,7 +192,7 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
                   disabled={disabled}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-white text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${s.btn}`}
                 >
-                  <Play size={11} /> Apply
+                  <Play size={11} /> {t('Apply', 'Appliquer')}
                 </button>
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : action.id)}
@@ -251,6 +213,7 @@ function AICopilotPanel({ clientName, clientExercice, onLaunch, disabled }) {
 // ─── Indicateur de réflexion ──────────────────────────────────────────────────
 
 function ThinkingIndicator() {
+  const t = useT()
   return (
     <div className="flex items-start gap-3 animate-slide-up">
       <div className="w-8 h-8 rounded-xl gradient-brand flex items-center justify-center flex-shrink-0 mt-1">
@@ -259,7 +222,7 @@ function ThinkingIndicator() {
       <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
         <div className="flex items-center gap-1.5">
           <span className="thinking-dot" /><span className="thinking-dot" /><span className="thinking-dot" />
-          <span className="text-slate-400 text-sm ml-1">ComptaMind is thinking...</span>
+          <span className="text-slate-400 text-sm ml-1">{t('ComptaMind is thinking...', 'ComptaMind réfléchit...')}</span>
         </div>
       </div>
     </div>
@@ -269,13 +232,15 @@ function ThinkingIndicator() {
 // ─── Animation de progression ─────────────────────────────────────────────────
 
 function TaskProgress({ task }) {
+  const t = useT()
+  const TASK_LABELS = t(TASK_LABELS_EN, TASK_LABELS_FR)
   const [step, setStep] = useState(0)
   const label = TASK_LABELS[task.tache] || task.tache
   const detail = task.fournisseur ? `${label} — ${task.fournisseur}` : label
   const steps = [
-    { id: 1, label: 'Connecting to Pennylane', duration: 1200 },
-    { id: 2, label: `${detail} in progress...`, duration: 3000 },
-    { id: 3, label: 'Generating report', duration: 800 },
+    { id: 1, label: t('Connecting to Pennylane', 'Connexion à Pennylane'), duration: 1200 },
+    { id: 2, label: t(`${detail} in progress...`, `${detail} en cours...`), duration: 3000 },
+    { id: 3, label: t('Generating report', 'Génération du rapport'), duration: 800 },
   ]
   useEffect(() => {
     const timers = []
@@ -293,7 +258,7 @@ function TaskProgress({ task }) {
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-bold text-slate-900">{task.title}</div>
           <div className="flex items-center gap-1 text-xs text-brand-600">
-            <div className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />In progress...
+            <div className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />{t('In progress...', 'En cours...')}
           </div>
         </div>
         <div className="space-y-2">
@@ -318,6 +283,8 @@ function TaskProgress({ task }) {
 // ─── Bloc Run + polling Airtable ──────────────────────────────────────────────
 
 function RunBlock({ runId, airtableRecordId, tache, clientNom, fournisseur, error }) {
+  const t = useT()
+  const TASK_LABELS = t(TASK_LABELS_EN, TASK_LABELS_FR)
   const [pollingStatus, setPollingStatus] = useState('waiting')
   const [reportContent, setReportContent] = useState('')
   const [elapsed, setElapsed] = useState(0)
@@ -352,10 +319,10 @@ function RunBlock({ runId, airtableRecordId, tache, clientNom, fournisseur, erro
         </div>
         <div className="flex-1 bg-red-50 border border-red-200 rounded-2xl rounded-tl-sm p-5 shadow-sm max-w-lg">
           <div className="flex items-center gap-2 font-bold text-red-800 mb-2">
-            <AlertTriangle size={16} /> Launch error
+            <AlertTriangle size={16} /> {t('Launch error', 'Erreur de lancement')}
           </div>
           <p className="text-sm text-red-700">{error}</p>
-          <p className="text-xs text-red-500 mt-2">Check that the VPS is accessible and that the client file exists in Airtable.</p>
+          <p className="text-xs text-red-500 mt-2">{t('Check that the VPS is accessible and that the client file exists in Airtable.', "Vérifiez que le VPS est accessible et que le dossier client existe dans Airtable.")}</p>
         </div>
       </div>
     )
@@ -369,7 +336,7 @@ function RunBlock({ runId, airtableRecordId, tache, clientNom, fournisseur, erro
       <div className="flex-1 max-w-lg space-y-3">
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl rounded-tl-sm p-4 shadow-sm">
           <div className="font-bold text-emerald-800 mb-1">
-            ✅ {label}{fournisseur ? ` — ${fournisseur}` : ''} launched for {clientNom}
+            ✅ {label}{fournisseur ? ` — ${fournisseur}` : ''} {t('launched for', 'lancé pour')} {clientNom}
           </div>
           {runId && <p className="text-xs text-emerald-700 font-mono">Run ID: {runId}</p>}
         </div>
@@ -378,9 +345,9 @@ function RunBlock({ runId, airtableRecordId, tache, clientNom, fournisseur, erro
           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-              <span>Waiting for Airtable report... {elapsed > 0 && `(${elapsed}s)`}</span>
+              <span>{t('Waiting for Airtable report...', 'En attente du rapport Airtable...')} {elapsed > 0 && `(${elapsed}s)`}</span>
             </div>
-            <p className="text-xs text-slate-400 mt-2">The report will appear here once ComptaMind finishes (1–5 min).</p>
+            <p className="text-xs text-slate-400 mt-2">{t('The report will appear here once ComptaMind finishes (1–5 min).', 'Le rapport apparaîtra ici une fois que ComptaMind aura terminé (1–5 min).')}</p>
           </div>
         )}
 
@@ -388,7 +355,7 @@ function RunBlock({ runId, airtableRecordId, tache, clientNom, fournisseur, erro
           <div className={`rounded-2xl p-4 shadow-sm border ${pollingStatus === 'done' ? 'bg-white border-slate-200' : 'bg-red-50 border-red-200'}`}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-bold text-slate-900">
-                {pollingStatus === 'done' ? '📄 Report available' : '⚠️ Report (with errors)'}
+                {pollingStatus === 'done' ? t('📄 Report available', '📄 Rapport disponible') : t('⚠️ Report (with errors)', '⚠️ Rapport (avec erreurs)')}
               </span>
               <button
                 onClick={() => downloadMarkdown(reportContent, `rapport-${clientNom}-${tache}-${new Date().toISOString().slice(0,10)}.md`)}
@@ -436,14 +403,23 @@ function Message({ msg }) {
 
 // ─── Rapport Classe 4 ─────────────────────────────────────────────────────────
 
-const SEVERITY_CONFIG = {
+const SEVERITY_CONFIG_EN = {
   critical: { label: 'Critical anomaly',  bg: 'bg-red-50',    border: 'border-red-200',    badge: 'bg-red-100 text-red-700',    dot: 'bg-red-500' },
   high:     { label: 'High priority',     bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
   medium:   { label: 'To verify',         bg: 'bg-amber-50',  border: 'border-amber-200',  badge: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400' },
   low:      { label: 'Information',       bg: 'bg-slate-50',  border: 'border-slate-200',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
 }
 
+const SEVERITY_CONFIG_FR = {
+  critical: { label: 'Anomalie critique', bg: 'bg-red-50',    border: 'border-red-200',    badge: 'bg-red-100 text-red-700',    dot: 'bg-red-500' },
+  high:     { label: 'Priorité haute',    bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+  medium:   { label: 'À vérifier',        bg: 'bg-amber-50',  border: 'border-amber-200',  badge: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400' },
+  low:      { label: 'Information',       bg: 'bg-slate-50',  border: 'border-slate-200',  badge: 'bg-slate-100 text-slate-600',  dot: 'bg-slate-400' },
+}
+
 function AnomalyCard({ anomaly }) {
+  const t = useT()
+  const SEVERITY_CONFIG = t(SEVERITY_CONFIG_EN, SEVERITY_CONFIG_FR)
   const [expanded, setExpanded] = useState(false)
   const sev = SEVERITY_CONFIG[anomaly.severity] || SEVERITY_CONFIG.low
 
@@ -470,7 +446,7 @@ function AnomalyCard({ anomaly }) {
         <div className="flex items-center gap-3 flex-shrink-0">
           {amount && (
             <div className="text-right">
-              <p className="text-xs text-slate-500">Amount involved</p>
+              <p className="text-xs text-slate-500">{t('Amount involved', 'Montant concerné')}</p>
               <p className="text-sm font-bold text-slate-900">{amount}</p>
             </div>
           )}
@@ -484,7 +460,7 @@ function AnomalyCard({ anomaly }) {
       </div>
       {expanded && anomaly.recommended_action && (
         <div className="mt-3 ml-5 pl-3 border-l-2 border-current border-opacity-20">
-          <p className="text-xs font-semibold text-slate-500 mb-1">Recommended action</p>
+          <p className="text-xs font-semibold text-slate-500 mb-1">{t('Recommended action', 'Action recommandée')}</p>
           <p className="text-sm text-slate-700">{anomaly.recommended_action}</p>
         </div>
       )}
@@ -493,6 +469,7 @@ function AnomalyCard({ anomaly }) {
 }
 
 function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onClose }) {
+  const t = useT()
   if (!report) return null
 
   // Compatibilité avec la structure réelle du VPS
@@ -511,10 +488,10 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
   }
 
   const stats = [
-    { label: 'Critical anomalies', count: summaryObj?.critical  ?? bySeverity.critical.length, color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
-    { label: 'High priority',      count: summaryObj?.high      ?? bySeverity.high.length,     color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
-    { label: 'To verify',          count: summaryObj?.medium    ?? bySeverity.medium.length,   color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
-    { label: 'Information',        count: summaryObj?.low       ?? bySeverity.low.length,      color: 'text-slate-600',  bg: 'bg-slate-50 border-slate-100' },
+    { label: t('Critical anomalies', 'Anomalies critiques'), count: summaryObj?.critical  ?? bySeverity.critical.length, color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
+    { label: t('High priority', 'Priorité haute'),           count: summaryObj?.high      ?? bySeverity.high.length,     color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
+    { label: t('To verify', 'À vérifier'),                  count: summaryObj?.medium    ?? bySeverity.medium.length,   color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
+    { label: t('Information', 'Information'),                count: summaryObj?.low       ?? bySeverity.low.length,      color: 'text-slate-600',  bg: 'bg-slate-50 border-slate-100' },
   ]
 
   const formattedDate = dateStr
@@ -531,7 +508,7 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
         <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div>
-              <p className="text-sm font-bold text-slate-900">{classLabel} Review Report — {clientName}</p>
+              <p className="text-sm font-bold text-slate-900">{t(`${classLabel} Review Report — ${clientName}`, `Rapport révision ${classLabel} — ${clientName}`)}</p>
               <p className="text-xs text-slate-400 mt-0.5">
                 {period && <span>{period} · </span>}
                 {formattedDate && <span>{formattedDate}</span>}
@@ -539,7 +516,7 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">
-                {anomalies_count} anomal{anomalies_count > 1 ? 'ies' : 'y'}
+                {anomalies_count} {t(anomalies_count > 1 ? 'anomalies' : 'anomaly', anomalies_count > 1 ? 'anomalies' : 'anomalie')}
               </span>
               {onClose && (
                 <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
@@ -579,8 +556,8 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
 
           {anomalies.length === 0 && (
             <div className="px-5 py-8 text-center">
-              <p className="text-slate-500 text-sm font-medium">No anomalies detected</p>
-              <p className="text-slate-400 text-xs mt-1">The {classLabel} review found no points of attention.</p>
+              <p className="text-slate-500 text-sm font-medium">{t('No anomalies detected', 'Aucune anomalie détectée')}</p>
+              <p className="text-slate-400 text-xs mt-1">{t(`The ${classLabel} review found no points of attention.`, `La révision ${classLabel} n'a trouvé aucun point d'attention.`)}</p>
             </div>
           )}
         </div>
@@ -592,6 +569,7 @@ function Class4ReportDisplay({ report, clientName, classLabel = 'Classe 4', onCl
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function ComptaMindPage() {
+  const t = useT()
   const [airtableClients, setAirtableClients] = useState([])
   const [loadingClients, setLoadingClients] = useState(true)
   const [selectedClientId, setSelectedClientId] = useState('')
@@ -615,6 +593,8 @@ export default function ComptaMindPage() {
       .finally(() => setLoadingClients(false))
   }, [])
 
+  const TASK_LABELS = t(TASK_LABELS_EN, TASK_LABELS_FR)
+
   const selectedClient = airtableClients.find(c => c.id === selectedClientId)
   const clientName = selectedClient?.fields?.[FLD_CLIENT_NAME] || selectedClient?.fields?.['Client Name'] || ''
 
@@ -636,8 +616,9 @@ export default function ComptaMindPage() {
       id: 'welcome',
       type: 'assistant',
       text: clientName
-        ? `Ready for **${clientName}** (year ${clientExercice}). Use the buttons above to launch an action, or type a custom instruction.`
-        : 'Select a client file to see available actions.',
+        ? t(`Ready for **${clientName}** (year ${clientExercice}). Use the buttons above to launch an action, or type a custom instruction.`,
+            `Prêt pour **${clientName}** (exercice ${clientExercice}). Utilisez les boutons ci-dessus pour lancer une action, ou tapez une instruction personnalisée.`)
+        : t('Select a client file to see available actions.', 'Sélectionnez un dossier client pour voir les actions disponibles.'),
     }])
     setRunningTask(null)
     setRunBlock(null)
@@ -657,7 +638,10 @@ export default function ComptaMindPage() {
     const vtache = TACHE_MAP[tache] || tache
     const title = `${label}${fournisseur ? ` — ${fournisseur}` : ''} · ${clientName}`
 
-    addMsg('assistant', `Launching **${label}**${fournisseur ? ` for ${fournisseur}` : ''} for **${clientName}** (year ${clientExercice}).\nConnecting to VPS...`)
+    addMsg('assistant', t(
+      `Launching **${label}**${fournisseur ? ` for ${fournisseur}` : ''} for **${clientName}** (year ${clientExercice}).\nConnecting to VPS...`,
+      `Lancement de **${label}**${fournisseur ? ` pour ${fournisseur}` : ''} pour **${clientName}** (exercice ${clientExercice}).\nConnexion au VPS...`
+    ))
     setPanelCollapsed(true)
     setRunningTask({ tache, title, fournisseur })
     setRunBlock(null)
@@ -760,15 +744,19 @@ export default function ComptaMindPage() {
     setTimeout(() => {
       setThinking(false)
       if (!selectedClientId) {
-        addMsg('assistant', "Please select a client file from the menu above first.")
+        addMsg('assistant', t(
+          "Please select a client file from the menu above first.",
+          "Veuillez d'abord sélectionner un dossier client dans le menu ci-dessus."
+        ))
         return
       }
       if (intent) {
         launchTask(intent.tache, intent.fournisseur)
       } else {
-        addMsg('assistant',
-          "Instruction not recognized. Examples:\n• \"Entry\" — pending invoices\n• \"Balance review\" — accounts 1 to 7\n• \"Supplier review\" — cycle 40x\n• \"LECLERC report\" — supplier report\n• \"Reminders\" — overdue receivables"
-        )
+        addMsg('assistant', t(
+          "Instruction not recognized. Examples:\n• \"Entry\" — pending invoices\n• \"Balance review\" — accounts 1 to 7\n• \"Supplier review\" — cycle 40x\n• \"LECLERC report\" — supplier report\n• \"Reminders\" — overdue receivables",
+          "Instruction non reconnue. Exemples :\n• \"Saisie\" — factures en attente\n• \"Révision balance\" — comptes 1 à 7\n• \"Révision fournisseur\" — cycle 40x\n• \"Rapport LECLERC\" — rapport fournisseur\n• \"Relances\" — créances en retard"
+        ))
       }
     }, 900)
   }
@@ -783,7 +771,7 @@ export default function ComptaMindPage() {
     <div className="flex flex-col h-screen">
       <Header
         title="ComptaMind IA"
-        subtitle="Your accounting copilot"
+        subtitle={t('Your accounting copilot', 'Votre copilote comptable')}
         actions={
           <div className="flex items-center gap-3">
             {/* Sélecteur dossier dans le header */}
@@ -793,8 +781,8 @@ export default function ComptaMindPage() {
                 onChange={e => setSelectedClientId(e.target.value)}
                 className="appearance-none bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-8 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 min-w-56"
               >
-                <option value="">— Select a client file —</option>
-                {loadingClients && <option disabled>Loading...</option>}
+                <option value="">{t('— Select a client file —', '— Sélectionner un dossier —')}</option>
+                {loadingClients && <option disabled>{t('Loading...', 'Chargement...')}</option>}
                 {airtableClients.map(c => {
                   const name = c.fields?.[FLD_CLIENT_NAME] || c.fields?.['Client Name'] || c.id
                   return <option key={c.id} value={c.id}>{name}</option>
@@ -814,12 +802,12 @@ export default function ComptaMindPage() {
         {/* ── AI Copilot Panel (core experience) ── */}
         {panelCollapsed ? (
           <div className="bg-white border-b border-slate-100 px-8 py-2 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Available actions for {clientName}</span>
+            <span className="text-xs text-slate-400">{t(`Available actions for ${clientName}`, `Actions disponibles pour ${clientName}`)}</span>
             <button
               onClick={() => setPanelCollapsed(false)}
               className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition-colors"
             >
-              <ChevronDown size={13} /> View actions
+              <ChevronDown size={13} /> {t('View actions', 'Voir les actions')}
             </button>
           </div>
         ) : (
@@ -845,7 +833,7 @@ export default function ComptaMindPage() {
               <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                  <span className="text-sm text-slate-600">Review in progress — the report will arrive in 2–3 minutes...</span>
+                  <span className="text-sm text-slate-600">{t('Review in progress — the report will arrive in 2–3 minutes...', 'Révision en cours — le rapport arrivera dans 2–3 minutes...')}</span>
                 </div>
                 <button
                   onClick={async () => {
@@ -854,12 +842,12 @@ export default function ComptaMindPage() {
                       setClass4Report(report)
                       setClass4Loading(false)
                     } catch (e) {
-                      alert('Rapport pas encore disponible. Patientez encore un peu.')
+                      alert(t('Report not yet available. Please wait a moment.', 'Rapport pas encore disponible. Patientez encore un peu.'))
                     }
                   }}
                   className="self-start text-xs text-brand-600 hover:text-brand-700 underline underline-offset-2"
                 >
-                  View the latest available report →
+                  {t('View the latest available report →', 'Voir le dernier rapport disponible →')}
                 </button>
               </div>
             </div>
@@ -879,7 +867,7 @@ export default function ComptaMindPage() {
               <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                  <span className="text-sm text-slate-600">Class 5 review in progress — the report will arrive in 2–3 minutes...</span>
+                  <span className="text-sm text-slate-600">{t('Class 5 review in progress — the report will arrive in 2–3 minutes...', 'Révision classe 5 en cours — le rapport arrivera dans 2–3 minutes...')}</span>
                 </div>
                 <button
                   onClick={async () => {
@@ -888,12 +876,12 @@ export default function ComptaMindPage() {
                       setClass5Report(report)
                       setClass5Loading(false)
                     } catch (e) {
-                      alert('Rapport pas encore disponible. Patientez encore un peu.')
+                      alert(t('Report not yet available. Please wait a moment.', 'Rapport pas encore disponible. Patientez encore un peu.'))
                     }
                   }}
                   className="self-start text-xs text-brand-600 hover:text-brand-700 underline underline-offset-2"
                 >
-                  View the latest available report →
+                  {t('View the latest available report →', 'Voir le dernier rapport disponible →')}
                 </button>
               </div>
             </div>
@@ -919,8 +907,9 @@ export default function ComptaMindPage() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={clientName
-                  ? `Instruction for ${clientName} — e.g.: "LECLERC report", "supplier review", "reminders"...`
-                  : "Select a client file first..."}
+                  ? t(`Instruction for ${clientName} — e.g.: "LECLERC report", "supplier review", "reminders"...`,
+                      `Instruction pour ${clientName} — ex. : "rapport LECLERC", "révision fournisseur", "relances"...`)
+                  : t("Select a client file first...", "Sélectionnez d'abord un dossier client...")}
                 rows={1}
                 style={{ resize: 'none', maxHeight: '120px' }}
                 className="w-full px-4 py-3 text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all placeholder:text-slate-400"
@@ -936,7 +925,7 @@ export default function ComptaMindPage() {
             </button>
           </div>
           <p className="text-center text-xs text-slate-400 mt-2">
-            Custom instruction — or use the <strong>Apply</strong> buttons above for a direct action.
+            {t(<>Custom instruction — or use the <strong>Apply</strong> buttons above for a direct action.</>, <>Instruction personnalisée — ou utilisez les boutons <strong>Appliquer</strong> ci-dessus pour une action directe.</>)}
           </p>
         </div>
       </div>

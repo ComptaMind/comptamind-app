@@ -4,21 +4,23 @@ import {
   Settings, LogOut, Zap, Bell, ChevronDown, Shield
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
+import { useT } from '../../hooks/useT'
 import clsx from 'clsx'
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/clients', icon: Users, label: 'My Clients' },
-  { to: '/comptamind', icon: Bot, label: 'ComptaMind AI' },
-  { to: '/autonomie', icon: Zap, label: 'Autonomous Mode' },
-  { to: '/autorisations', icon: Shield, label: 'Permissions' },
-  { to: '/memoire', icon: Brain, label: 'Memory' },
-  { to: '/rapports', icon: FileText, label: 'Reports' },
-]
-
 export default function Sidebar() {
-  const { user, cabinet, logout, pendingApprovals } = useAppStore()
+  const { user, cabinet, logout, pendingApprovals, language, setLanguage } = useAppStore()
   const navigate = useNavigate()
+  const t = useT()
+
+  const navItems = [
+    { to: '/dashboard', icon: LayoutDashboard, label: t('Dashboard', 'Tableau de bord') },
+    { to: '/clients', icon: Users, label: t('My Clients', 'Mes Clients') },
+    { to: '/comptamind', icon: Bot, label: t('ComptaMind AI', 'ComptaMind IA') },
+    { to: '/autonomie', icon: Zap, label: t('Autonomous Mode', 'Mode Autonome') },
+    { to: '/autorisations', icon: Shield, label: t('Permissions', 'Autorisations') },
+    { to: '/memoire', icon: Brain, label: t('Memory', 'Mémoire') },
+    { to: '/rapports', icon: FileText, label: t('Reports', 'Rapports') },
+  ]
 
   const handleLogout = () => {
     logout()
@@ -35,7 +37,7 @@ export default function Sidebar() {
           </div>
           <div>
             <div className="text-white font-bold text-base leading-tight">ComptaMind</div>
-            <div className="text-slate-400 text-xs">Accounting AI</div>
+            <div className="text-slate-400 text-xs">{t('Accounting AI', 'IA Comptable')}</div>
           </div>
         </div>
       </div>
@@ -49,7 +51,7 @@ export default function Sidebar() {
             </div>
             <div className="flex-1 text-left min-w-0">
               <div className="text-white text-sm font-medium truncate">{cabinet.nom}</div>
-              <div className="text-slate-400 text-xs truncate">{cabinet.plan || 'Essential Plan'}</div>
+              <div className="text-slate-400 text-xs truncate">{cabinet.plan || t('Essential Plan', 'Plan Essentiel')}</div>
             </div>
             <ChevronDown size={14} className="text-slate-500 group-hover:text-slate-300 flex-shrink-0" />
           </button>
@@ -81,7 +83,7 @@ export default function Sidebar() {
       <div className="px-3 py-3 border-t border-white/10">
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)'}}>
           <div className="w-2 h-2 rounded-full bg-brand-400 animate-pulse flex-shrink-0" />
-          <span className="text-brand-400 text-xs font-medium">ComptaMind active</span>
+          <span className="text-brand-400 text-xs font-medium">{t('ComptaMind active', 'ComptaMind actif')}</span>
           <Zap size={12} className="text-brand-400 ml-auto" />
         </div>
       </div>
@@ -93,8 +95,17 @@ export default function Sidebar() {
           className={({ isActive }) => clsx('sidebar-item', isActive && 'active')}
         >
           <Settings size={18} />
-          <span>Settings</span>
+          <span>{t('Settings', 'Paramètres')}</span>
         </NavLink>
+
+        {/* Language toggle */}
+        <button
+          onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors text-sm"
+        >
+          <span className="text-base">{language === 'fr' ? '🇬🇧' : '🇫🇷'}</span>
+          <span className="text-xs font-medium">{language === 'fr' ? 'Switch to English' : 'Passer en français'}</span>
+        </button>
 
         <div className="flex items-center gap-3 px-3 py-2.5 mt-2 border-t border-white/10 pt-3">
           <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center flex-shrink-0">
@@ -104,7 +115,7 @@ export default function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-white text-sm font-medium truncate">{user?.prenom} {user?.nom}</div>
-            <div className="text-slate-400 text-xs truncate">{user?.role || 'Accountant'}</div>
+            <div className="text-slate-400 text-xs truncate">{user?.role || t('Accountant', 'Expert-comptable')}</div>
           </div>
           <button onClick={handleLogout} className="text-slate-500 hover:text-red-400 transition-colors p-1">
             <LogOut size={16} />
